@@ -228,6 +228,7 @@ public struct AlbumPage: Codable, Sendable {
 public struct VideoPage: Codable, Sendable {
     public var video: Video
     public var related: [Video]
+    public init(video: Video, related: [Video]) { self.video = video; self.related = related }
 }
 
 public struct LyricsResponse: Codable, Sendable {

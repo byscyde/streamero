@@ -1,0 +1,80 @@
+name: iOS
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+    paths: ['ios/**', 'scripts/build-unsigned-ipa.sh', '.github/workflows/ios.yml']
+  pull_request:
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+    inputs:
+      default_server_url:
+        description: 'Optional server URL baked in as the default (users can change it in the app)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-linux:
+    name: StreameroCore tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test --package-path ios/Packages/StreameroCore
+
+  build-ipa:
+    name: Build unsigned IPA (for Feather / sideloading)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)"
+          xcodebuild -version
+          brew install xcodegen
+      - name: Build
+        env:
+          STREAMERO_DEFAULT_SERVER_URL: ${{ github.event.inputs.default_server_url }}
+        run: ./scripts/build-unsigned-ipa.sh
+      - name: Show build errors
+        if: failure()
+        run: grep -E "error:" ios/build/build.log | sort -u | head -100 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: STREAMERO-unsigned-ipa
+          path: ios/build/ipa/*
+          if-no-files-found: error
+      - name: Attach to GitHub release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ios/build/ipa/*
+
+  test-simulator:
+    name: Unit & UI tests (iOS Simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)"
+          brew install xcodegen
+      - name: Test
+        working-directory: ios
+        run: |
+          xcodegen generate --quiet
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for k,v in d.items() if "iOS" in k for x in v if x["name"].startswith("iPhone")))')
+          set -o pipefail
+          xcodebuild test -project STREAMERO.xcodeproj -scheme STREAMERO -destination "id=$DEVICE" \
+            CODE_SIGNING_ALLOWED=NO -resultBundlePath build/TestResults.xcresult | tee build-test.log | grep -E "error:|Test Case.*(passed|failed)|TEST (SUCCEEDED|FAILED)|Executed"
+      - name: Show test errors
+        if: failure()
+        working-directory: ios
+        run: grep -E "error:" build-test.log | sort -u | head -100 || true
