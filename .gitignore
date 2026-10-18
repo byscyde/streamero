@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+# iOS
+ios/build/
+ios/*.xcodeproj/xcuserdata/
+ios/**/*.xcuserstate
+ios/DerivedData/
+*.ipa
+ios/Packages/StreameroCore/.build/
+ios/Packages/StreameroCore/.swiftpm/
