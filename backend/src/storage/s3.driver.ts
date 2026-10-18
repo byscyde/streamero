@@ -6,6 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import {
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
+  CreateBucketCommand,
   CreateMultipartUploadCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -155,6 +156,16 @@ export class S3StorageDriver implements StorageDriver {
     };
     await walk(localDir);
     return { bytes, files };
+  }
+
+  /** Creates the bucket when missing (fresh self-hosted object stores). */
+  async ensureBucket() {
+    try {
+      await this.s3.send(new HeadBucketCommand({ Bucket: this.bucket }));
+    } catch (err: any) {
+      if (err?.$metadata?.httpStatusCode !== 404 && err?.name !== 'NotFound' && err?.name !== 'NoSuchBucket') throw err;
+      await this.s3.send(new CreateBucketCommand({ Bucket: this.bucket }));
+    }
   }
 
   async ping() {

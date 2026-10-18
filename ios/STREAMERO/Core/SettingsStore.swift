@@ -11,7 +11,6 @@ final class SettingsStore {
         var quality = QualityPolicy()
         var crossfadeSeconds: Double = 0
         var gapless = true
-        var normalizeVolume = false
         var downloadOverCellular = false
         var subtitlesEnabled = false
         var subtitleLanguages: [String] = Locale.preferredLanguages.map { String($0.prefix(2)) }

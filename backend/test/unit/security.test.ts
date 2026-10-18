@@ -14,12 +14,13 @@ describe('media URL signing', () => {
     const exp = Math.floor(Date.now() / 1000) + 60;
     const token = signer.sign({ k: 'renditions/a.m4a', e: exp });
     expect(signer.verify(token)?.k).toBe('renditions/a.m4a');
-    const [body, sig] = token.split('.');
-    const forged = Buffer.from(JSON.stringify({ k: 'originals/secret.flac', e: exp })).toString('base64url');
-    expect(signer.verify(`${forged}.${sig}`)).toBeNull();
-    expect(signer.verify(`${body}.${sig.slice(0, -2)}xx`)).toBeNull();
+    // Opaque: the storage key is not readable from the token.
+    expect(Buffer.from(token, 'base64url').toString('latin1')).not.toContain('renditions');
+    const flipped = token.slice(0, 30) + (token[30] === 'A' ? 'B' : 'A') + token.slice(31);
+    expect(signer.verify(flipped)).toBeNull();
     expect(signer.verify(signer.sign({ k: 'a', e: 1 }))).toBeNull();
     expect(new MediaSigner('y'.repeat(40)).verify(token)).toBeNull();
+    expect(signer.verify('not-a-token')).toBeNull();
   });
 });
 

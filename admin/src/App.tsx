@@ -24,7 +24,7 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
         <div className="topbar">
           <button className="small" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">☰</button>
           <span className="brand" style={{ padding: 0 }}>STREAMERO</span>

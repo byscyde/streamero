@@ -11,3 +11,4 @@ ios/DerivedData/
 *.ipa
 ios/Packages/StreameroCore/.build/
 ios/Packages/StreameroCore/.swiftpm/
+dump.rdb

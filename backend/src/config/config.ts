@@ -67,8 +67,9 @@ export const configSchema = z
       if (c.IMPORT_ALLOW_PRIVATE_NETWORKS) {
         ctx.addIssue({ code: 'custom', message: 'IMPORT_ALLOW_PRIVATE_NETWORKS must be false in production' });
       }
-      if (!c.PUBLIC_BASE_URL.startsWith('https://')) {
-        ctx.addIssue({ code: 'custom', message: 'PUBLIC_BASE_URL must use https in production' });
+      const local = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(c.PUBLIC_BASE_URL);
+      if (!c.PUBLIC_BASE_URL.startsWith('https://') && !local) {
+        ctx.addIssue({ code: 'custom', message: 'PUBLIC_BASE_URL must use https in production (http is only allowed for localhost)' });
       }
     }
   });

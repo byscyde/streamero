@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
 export interface MediaGrant {
   /** Storage key of a single object, or a key prefix ending in "/" granting access to everything below it. */
@@ -14,34 +14,36 @@ export interface MediaGrant {
 }
 
 /**
- * Stateless, expiring media grants: base64url(JSON) + "." + base64url(HMAC-SHA256).
- * Tokens are embedded in the URL path so that relative URLs inside HLS playlists inherit them.
+ * Stateless, expiring media grants sealed with AES-256-GCM: the token is opaque (storage keys and
+ * user ids are not readable by clients) and authenticated (any modification fails decryption).
+ * Tokens are embedded in the URL path so relative URLs inside HLS playlists inherit them.
  */
 export class MediaSigner {
-  constructor(private readonly secret: string) {}
+  private readonly key: Buffer;
+
+  constructor(secret: string) {
+    this.key = createHash('sha256').update(`streamero-media-v1:${secret}`).digest();
+  }
 
   sign(grant: MediaGrant): string {
-    const body = Buffer.from(JSON.stringify(grant)).toString('base64url');
-    return `${body}.${this.mac(body)}`;
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', this.key, iv);
+    const body = Buffer.concat([cipher.update(JSON.stringify(grant), 'utf8'), cipher.final()]);
+    return Buffer.concat([iv, cipher.getAuthTag(), body]).toString('base64url');
   }
 
   verify(token: string, now = Date.now()): MediaGrant | null {
-    const dot = token.indexOf('.');
-    if (dot <= 0 || token.length > 2048) return null;
-    const body = token.slice(0, dot);
-    const sig = Buffer.from(token.slice(dot + 1));
-    const expected = Buffer.from(this.mac(body));
-    if (sig.length !== expected.length || !timingSafeEqual(sig, expected)) return null;
+    if (token.length < 40 || token.length > 2048 || !/^[A-Za-z0-9_-]+$/.test(token)) return null;
     try {
-      const grant = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as MediaGrant;
+      const raw = Buffer.from(token, 'base64url');
+      const decipher = createDecipheriv('aes-256-gcm', this.key, raw.subarray(0, 12));
+      decipher.setAuthTag(raw.subarray(12, 28));
+      const json = Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString('utf8');
+      const grant = JSON.parse(json) as MediaGrant;
       if (typeof grant.k !== 'string' || typeof grant.e !== 'number' || grant.e * 1000 < now) return null;
       return grant;
     } catch {
       return null;
     }
-  }
-
-  private mac(body: string) {
-    return createHmac('sha256', this.secret).update(`streamero-media:${body}`).digest('base64url');
   }
 }

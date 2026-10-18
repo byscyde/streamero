@@ -21,7 +21,17 @@ export function createStorage(config: AppConfig) {
 
 @Global()
 @Module({
-  providers: [{ provide: STORAGE, inject: [APP_CONFIG], useFactory: createStorage }],
+  providers: [
+    {
+      provide: STORAGE,
+      inject: [APP_CONFIG],
+      useFactory: async (config: AppConfig) => {
+        const storage = createStorage(config);
+        if (storage instanceof S3StorageDriver) await storage.ensureBucket().catch((err) => console.error('Could not ensure S3 bucket', err));
+        return storage;
+      },
+    },
+  ],
   exports: [STORAGE],
 })
 export class StorageModule {}
