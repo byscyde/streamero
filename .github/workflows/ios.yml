@@ -3,7 +3,6 @@ name: iOS
 on:
   push:
     branches: ['**']
-    tags: ['v*']
     paths: ['ios/**', 'scripts/build-unsigned-ipa.sh', '.github/workflows/ios.yml']
   pull_request:
     paths: ['ios/**', '.github/workflows/ios.yml']
@@ -14,7 +13,7 @@ on:
         required: false
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ios-${{ github.ref }}
@@ -51,11 +50,6 @@ jobs:
           name: STREAMERO-unsigned-ipa
           path: ios/build/ipa/*
           if-no-files-found: error
-      - name: Attach to GitHub release (tags only)
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ios/build/ipa/*
 
   test-simulator:
     name: Unit & UI tests (iOS Simulator)

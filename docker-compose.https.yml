@@ -1,0 +1,27 @@
+# Optional HTTPS overlay: Caddy obtains and renews a Let's Encrypt certificate for STREAMERO_DOMAIN.
+#   docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
+# nginx's own port is then only bound to localhost.
+services:
+  nginx:
+    ports: !override
+      - "127.0.0.1:${HTTP_PORT:-8088}:80"
+
+  caddy:
+    image: caddy:2.10-alpine
+    depends_on: [nginx]
+    environment:
+      STREAMERO_DOMAIN: ${STREAMERO_DOMAIN:?set STREAMERO_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    networks: [egress]
+    restart: unless-stopped
+
+volumes:
+  caddydata:
+  caddyconfig:

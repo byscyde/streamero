@@ -21,9 +21,8 @@ The CI builds an **unsigned** `STREAMERO-<version>-<build>-unsigned.ipa` on ever
 iPhone as-is — Feather (or AltStore, SideStore, Sideloadly, ESign) signs it with **your own** certificate
 and provisioning profile during installation.
 
-1. Open the repository's **Actions › iOS** run for the commit you want, download the
-   `STREAMERO-unsigned-ipa` artifact and unzip it (or push a tag `v1.0.0` to get the IPA attached to a
-   GitHub Release).
+1. Download **`STREAMERO.ipa`** from [GitHub Releases](https://github.com/mmzlopasa/streamero/releases)
+   (every `v*` tag publishes one; branch builds are also available as Actions artifacts).
 2. In Feather: *Library › Import* the `.ipa`, choose your certificate, sign, and install.
 3. Launch STREAMERO and enter your server address (e.g. `https://music.example.com`, or
    `http://192.168.1.10:8088` on your Wi-Fi).
@@ -34,6 +33,8 @@ What works when re-signed with a normal (non-entitled) certificate: everything e
 Picture and downloads need no special entitlement. Full details: [`docs/IOS_BUILD.md`](docs/IOS_BUILD.md).
 
 ## Run the server
+
+🇭🇷 **Upute na hrvatskom, korak po korak (uključujući postojeći nginx):** [`docs/INSTALACIJA_SERVERA.md`](docs/INSTALACIJA_SERVERA.md) — ili samo `sudo ./scripts/install-server.sh`.
 
 ```bash
 cp .env.example .env            # set POSTGRES_PASSWORD, S3_SECRET_KEY, JWT_ACCESS_SECRET,

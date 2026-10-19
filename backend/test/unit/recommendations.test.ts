@@ -26,5 +26,9 @@ describe('configuration', () => {
     ).toThrow(/Placeholder secrets/);
     expect(() => loadConfig({ ...base, NODE_ENV: 'production', PUBLIC_BASE_URL: 'http://a.com' } as any)).toThrow(/https/);
     expect(() => loadConfig({ ...base, STORAGE_DRIVER: 's3' } as any)).toThrow(/S3 credentials/);
+    // Home-network installs may use plain http on private addresses.
+    expect(loadConfig({ ...base, NODE_ENV: 'production', PUBLIC_BASE_URL: 'http://192.168.1.20:8088' } as any).PUBLIC_BASE_URL).toBe('http://192.168.1.20:8088');
+    expect(loadConfig({ ...base, NODE_ENV: 'production', PUBLIC_BASE_URL: 'http://nas.local:8088' } as any).NODE_ENV).toBe('production');
+    expect(() => loadConfig({ ...base, NODE_ENV: 'production', PUBLIC_BASE_URL: 'http://8.8.8.8' } as any)).toThrow(/https/);
   });
 });

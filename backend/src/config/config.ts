@@ -67,12 +67,28 @@ export const configSchema = z
       if (c.IMPORT_ALLOW_PRIVATE_NETWORKS) {
         ctx.addIssue({ code: 'custom', message: 'IMPORT_ALLOW_PRIVATE_NETWORKS must be false in production' });
       }
-      const local = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(c.PUBLIC_BASE_URL);
-      if (!c.PUBLIC_BASE_URL.startsWith('https://') && !local) {
-        ctx.addIssue({ code: 'custom', message: 'PUBLIC_BASE_URL must use https in production (http is only allowed for localhost)' });
+      if (!c.PUBLIC_BASE_URL.startsWith('https://') && !isLocalNetworkUrl(c.PUBLIC_BASE_URL)) {
+        ctx.addIssue({ code: 'custom', message: 'PUBLIC_BASE_URL must use https in production (http is only allowed for localhost and private LAN addresses)' });
       }
     }
   });
+
+/** http:// is acceptable only for loopback, RFC 1918 LAN addresses and .local hostnames (home-network installs). */
+export function isLocalNetworkUrl(url: string): boolean {
+  let host: string;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'http:') return false;
+    host = u.hostname;
+  } catch {
+    return false;
+  }
+  if (host === 'localhost' || host.endsWith('.local')) return true;
+  const m = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  return a === 127 || a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31) || (a === 100 && b >= 64 && b <= 127);
+}
 
 export type AppConfig = z.infer<typeof configSchema>;
 

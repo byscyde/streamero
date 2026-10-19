@@ -15,6 +15,12 @@ curl -fsS http://localhost:8088/readyz
 The first administrator is created from `BOOTSTRAP_ADMIN_EMAIL`/`BOOTSTRAP_ADMIN_PASSWORD` on API start (only if no
 admin exists). Remove the password from `.env` afterwards. Admin UI: `/admin/`. API docs: `/docs`.
 
+### Existing nginx on the host
+
+Run `sudo ./scripts/install-server.sh` and choose *existing nginx*, or use `docker-compose.localhost.yml`
+(binds STREAMERO to 127.0.0.1:8088) plus the vhost in `infra/host-nginx-streamero.conf` and certbot.
+Step-by-step (Croatian): [INSTALACIJA_SERVERA.md](INSTALACIJA_SERVERA.md).
+
 ### TLS
 
 Put a TLS terminator in front of nginx's port, e.g. Caddy:

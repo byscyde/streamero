@@ -1,0 +1,59 @@
+name: Release
+
+# Push a tag like v1.0.0 (or run manually) to publish a GitHub Release with the unsigned IPA
+# for Feather / AltStore / SideStore / Sideloadly.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to create (e.g. v1.0.1)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)"
+          xcodebuild -version
+          brew install xcodegen
+      - name: Version from tag
+        id: v
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          VERSION="${TAG#v}"
+          # Marketing version from the tag, build number from the CI run so every build is unique.
+          sed -i '' "s/MARKETING_VERSION: \".*\"/MARKETING_VERSION: \"$VERSION\"/; s/CURRENT_PROJECT_VERSION: \".*\"/CURRENT_PROJECT_VERSION: \"${{ github.run_number }}\"/" ios/project.yml
+          grep -E "MARKETING_VERSION|CURRENT_PROJECT_VERSION" ios/project.yml
+      - name: Build unsigned IPA
+        run: ./scripts/build-unsigned-ipa.sh
+      - name: Show build errors
+        if: failure()
+        run: grep -E "error:" ios/build/build.log | sort -u | head -100 || true
+      - name: Stable file name
+        run: |
+          cd ios/build/ipa
+          cp STREAMERO-*-unsigned.ipa STREAMERO.ipa
+          shasum -a 256 STREAMERO.ipa > STREAMERO.ipa.sha256
+          ls -la
+      - name: Release notes
+        run: sed "s/{{TAG}}/${{ steps.v.outputs.tag }}/g" docs/RELEASE_NOTES.md > "$RUNNER_TEMP/notes.md"
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.v.outputs.tag }}
+          name: STREAMERO ${{ steps.v.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          body_path: ${{ runner.temp }}/notes.md
+          files: |
+            ios/build/ipa/STREAMERO.ipa
+            ios/build/ipa/STREAMERO.ipa.sha256
+            ios/build/ipa/STREAMERO-*-unsigned.ipa
