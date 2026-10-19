@@ -83,11 +83,7 @@ struct HomeView: View {
                 let sections = feed.sections.filter { filter == .all || !["music_videos", "continue_watching"].contains($0.kind) }
                 ShortcutGrid(items: shortcuts(from: feed))
                 ForEach(sections) { section in
-                    if section.kind != "recently_played" || shortcuts(from: feed).count < 2 {
-                        HomeSectionView(section: section)
-                    } else {
-                        HomeSectionView(section: HomeSection(id: section.id, kind: section.kind, title: "Jump back in", subtitle: nil, layout: section.layout, items: section.items))
-                    }
+                    HomeSectionView(section: section, titleOverride: section.kind == "recently_played" ? "Jump back in" : nil)
                 }
             }
         } else if let error = model.error {
@@ -202,6 +198,8 @@ struct ShortcutTile<Art: View>: View {
 
 struct HomeSectionView: View {
     let section: HomeSection
+    var titleOverride: String?
+    private var title: String { titleOverride ?? section.title }
     @Environment(AudioPlayer.self) private var player
 
     private var tracks: [Track] {
@@ -212,7 +210,7 @@ struct HomeSectionView: View {
         switch section.layout {
         case "list":
             VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                SectionHeader(title: section.title, subtitle: section.subtitle)
+                SectionHeader(title: title, subtitle: titleOverride == nil ? section.subtitle : nil)
                 ForEach(Array(tracks.prefix(5).enumerated()), id: \.element.id) { i, t in
                     TrackRow(track: t, subtitle: t.resumePositionMs.map { "\(t.artist.name) • \(Format.time(TimeInterval($0) / 1000)) left" }) {
                         player.play(tracks: tracks, startAt: i, context: PlaybackContext(type: "radio", title: section.title))
@@ -222,7 +220,7 @@ struct HomeSectionView: View {
             }
         case "chips":
             VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                SectionHeader(title: section.title)
+                SectionHeader(title: title)
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: Theme.Spacing.m) {
                         ForEach(Array(section.items.enumerated()), id: \.element.id) { i, item in
@@ -235,7 +233,7 @@ struct HomeSectionView: View {
                 }
             }
         default:
-            Shelf(title: section.title, subtitle: section.subtitle, items: section.items) { item in
+            Shelf(title: title, subtitle: titleOverride == nil ? section.subtitle : nil, items: section.items) { item in
                 HomeItemCard(item: item, siblings: tracks, sectionTitle: section.title)
             }
         }

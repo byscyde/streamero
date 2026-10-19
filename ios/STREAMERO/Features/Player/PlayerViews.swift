@@ -35,11 +35,11 @@ struct MiniPlayerView: View {
             .padding(.leading, 8)
             .padding(.trailing, 2)
             .frame(height: Theme.Size.miniPlayerHeight)
-            .background(
+            .background {
                 ZStack { Color.black; tint.opacity(0.6) }
-                    .animation(.easeInOut(duration: 0.6), value: tint),
-                in: RoundedRectangle(cornerRadius: Theme.Radius.m, style: .continuous)
-            )
+                    .animation(.easeInOut(duration: 0.6), value: tint)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.m, style: .continuous))
+            }
             .overlay(alignment: .bottom) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
