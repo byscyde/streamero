@@ -63,18 +63,13 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.streamero.links
             CFBundleURLSchemes: [streamero]
-        # Self-hosted servers on a home network are often plain http://<LAN IP>. The app defaults to https://
-        # (ServerConfig.normalise) and only uses http when the user types it explicitly.
-        NSAppTransportSecurity:
-          NSAllowsLocalNetworking: true
-          NSAllowsArbitraryLoads: true
-        NSLocalNetworkUsageDescription: STREAMERO connects to your STREAMERO server on the local network.
-        StreameroDefaultServerURL: $(STREAMERO_DEFAULT_SERVER_URL)
+        # The app only talks to the STREAMERO service over HTTPS (default App Transport Security).
+        StreameroServerURL: $(STREAMERO_SERVER_URL)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(STREAMERO_BUNDLE_ID)
         STREAMERO_BUNDLE_ID: com.example.streamero
-        STREAMERO_DEFAULT_SERVER_URL: ""
+        STREAMERO_SERVER_URL: "https://app.streamero.net"
         PRODUCT_NAME: STREAMERO
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

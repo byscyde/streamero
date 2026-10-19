@@ -24,8 +24,9 @@ and provisioning profile during installation.
 1. Download **`STREAMERO.ipa`** from [GitHub Releases](https://github.com/mmzlopasa/streamero/releases)
    (every `v*` tag publishes one; branch builds are also available as Actions artifacts).
 2. In Feather: *Library › Import* the `.ipa`, choose your certificate, sign, and install.
-3. Launch STREAMERO and enter your server address (e.g. `https://music.example.com`, or
-   `http://192.168.1.10:8088` on your Wi-Fi).
+3. Launch STREAMERO and sign in. The app connects to **`https://app.streamero.net`** automatically
+   (compiled in via `STREAMERO_SERVER_URL`; users never see or enter it) and syncs library changes and new
+   content every 30 seconds while it is open.
 
 What works when re-signed with a normal (non-entitled) certificate: everything except **CarPlay** and
 **Sign in with Apple**, which need entitlements only Apple can grant to your team

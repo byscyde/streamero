@@ -22,23 +22,25 @@ dodaje jedan novi virtual host. Baza, Redis i spremište datoteka nisu dostupni 
 | RAM | 4 GB | 8 GB |
 | Disk | ~3× veličina tvoje kolekcije* | SSD |
 | Mreža | javna IP adresa ili port-forward 80/443 | |
-| Domena | npr. `music.tvojadomena.hr` | |
+| Domena | **`app.streamero.net`** (aplikacija je trajno spojena na nju) | |
 
 \* Original se čuva + verzije za streaming (AAC, ALAC za lossless, HLS za video). Za 50 GB FLAC-a računaj ~120 GB.
 
-**Zašto domena i HTTPS?** iPhone ne dopušta nekriptirane (`http://`) veze prema internetu. Bez domene
-aplikacija radi samo u kućnoj mreži (vidi odjeljak 9).
+**Zašto baš `app.streamero.net`?** iPhone aplikacija se **automatski** spaja na `https://app.streamero.net`
+— korisnici adresu nikad ne vide niti je upisuju. Zato server mora odgovarati upravo na toj domeni, s važećim
+HTTPS certifikatom (certbot ga izdaje besplatno). Druga adresa se može ugraditi samo novim buildom IPA-e
+(`STREAMERO_SERVER_URL`, vidi `docs/IOS_BUILD.md`).
 
 ## 2. DNS zapis
 
 Kod svog DNS providera dodaj zapis:
 
 ```
-Tip: A      Ime: music      Vrijednost: <javna IPv4 adresa servera>
-(opcionalno) Tip: AAAA  Ime: music  Vrijednost: <IPv6 adresa>
+Tip: A      Ime: app      Vrijednost: <javna IPv4 adresa servera>      (u zoni streamero.net)
+(opcionalno) Tip: AAAA  Ime: app  Vrijednost: <IPv6 adresa>
 ```
 
-Provjera (s bilo kojeg računala): `ping music.tvojadomena.hr` mora vratiti IP tvog servera.
+Provjera (s bilo kojeg računala): `ping app.streamero.net` mora vratiti IP tvog servera.
 
 > **Cloudflare:** možeš ostaviti narančasti oblak (proxy). U Cloudflareu postavi *SSL/TLS → Full (strict)*.
 > Za prvo izdavanje certifikata najlakše je privremeno isključiti proxy (sivi oblak), pokrenuti certbot, pa ga
@@ -76,7 +78,7 @@ sudo ./scripts/install-server.sh
 Skripta pita nekoliko pitanja:
 
 1. **Način pristupa** — odaberi **1) moj postojeći nginx** (skripta sama prepozna da nginx radi i to predloži).
-2. **Domena** — npr. `music.tvojadomena.hr`.
+2. **Domena** — npr. `app.streamero.net`.
 3. **Email administratora** — s njim se prijavljuješ u admin panel i u aplikaciju.
 
 Zatim automatski:
@@ -90,8 +92,8 @@ Zatim automatski:
 
 ```
 ✅ STREAMERO radi!
-   Adresa za iPhone aplikaciju:  https://music.tvojadomena.hr
-   Admin panel (preglednik):     https://music.tvojadomena.hr/admin/
+   Adresa za iPhone aplikaciju:  https://app.streamero.net
+   Admin panel (preglednik):     https://app.streamero.net/admin/
    Admin email:                  ti@primjer.hr
    Admin lozinka:                ********   (spremljeno i u /opt/streamero/streamero-admin-credentials.txt)
 ```
@@ -99,7 +101,7 @@ Zatim automatski:
 Bez pitanja (npr. za automatizaciju):
 
 ```bash
-sudo STREAMERO_DOMAIN=music.tvojadomena.hr STREAMERO_PROXY=host-nginx \
+sudo STREAMERO_DOMAIN=app.streamero.net STREAMERO_PROXY=host-nginx \
      ADMIN_EMAIL=ti@primjer.hr ./scripts/install-server.sh --yes
 ```
 
@@ -109,10 +111,10 @@ Ako radije sam uređuješ nginx, gotova konfiguracija je u `infra/host-nginx-str
 
 ```bash
 sudo cp infra/host-nginx-streamero.conf /etc/nginx/sites-available/streamero.conf
-sudo sed -i 's/music.example.com/music.tvojadomena.hr/g' /etc/nginx/sites-available/streamero.conf
+sudo sed -i 's/music.example.com/app.streamero.net/g' /etc/nginx/sites-available/streamero.conf
 sudo ln -s /etc/nginx/sites-available/streamero.conf /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d music.tvojadomena.hr --redirect
+sudo certbot --nginx -d app.streamero.net --redirect
 ```
 
 Ako STREAMERO dodaješ u **postojeći** `server {}` blok (npr. pod putanjom), važno je zadržati ove postavke:
@@ -127,13 +129,13 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $scheme;
 ```
 
-STREAMERO treba **vlastitu (pod)domenu** (npr. `music.…`), ne podputanju poput `tvojadomena.hr/music`,
+STREAMERO treba **vlastitu (pod)domenu** (`app.streamero.net`), ne podputanju poput `streamero.net/app`,
 jer API koristi putanje `/v1/…` i `/admin/`.
 
 ## 6. Provjera
 
 ```bash
-curl https://music.tvojadomena.hr/readyz
+curl https://app.streamero.net/readyz
 # {"status":"ready","checks":{"database":true,"redis":true,"storage":true}}
 
 cd /opt/streamero
@@ -143,7 +145,7 @@ sudo docker compose -f docker-compose.yml -f docker-compose.localhost.yml ps
 
 ## 7. Dodaj glazbu i videe
 
-1. Otvori `https://music.tvojadomena.hr/admin/` i prijavi se adminskim emailom i lozinkom.
+1. Otvori `https://app.streamero.net/admin/` i prijavi se adminskim emailom i lozinkom.
 2. **Upload & import** → povuci datoteke (MP3, AAC/M4A, FLAC, WAV, ALAC, AIFF, OGG… i video MP4/MOV/MKV/WebM).
    Možeš ih poslati i stotine odjednom; upload se nastavlja nakon prekida.
 3. **Processing queue** prikazuje napredak. Za svaku pjesmu radi se:
@@ -166,22 +168,28 @@ sudo ./scripts/install-server.sh             # ponovno pokretanje primijeni prom
 Zatim u admin panelu → *Import from server* upiši `/import` (cijela mapa) ili `/import/Izvođač/Album`.
 Mapa je montirana samo za čitanje — originali ostaju netaknuti.
 
-## 8. Spoji iPhone aplikaciju
+## 8. iPhone aplikacija
 
 1. Instaliraj `STREAMERO.ipa` iz [GitHub Releases](https://github.com/mmzlopasa/streamero/releases) pomoću
    Feathera (uvezi → potpiši svojim certifikatom → instaliraj).
-2. Otvori STREAMERO → upiši `music.tvojadomena.hr` (https se dodaje sam) → **Continue**.
-3. Prijavi se adminskim računom ili napravi novi račun (*Create an account*).
-4. U **Profile → Settings** odaberi kvalitetu za Wi-Fi/mobilne podatke (npr. Lossless na Wi-Fi, Standard na mobilnim).
+2. Otvori STREAMERO → **Log in** (adminski račun) ili **Sign up free** (novi račun).
+   Adresu servera ne treba upisivati — aplikacija se sama spaja na `https://app.streamero.net`.
+3. U izborniku (tap na avatar gore lijevo) → **Settings and privacy** odaberi kvalitetu za Wi-Fi/mobilne podatke.
+
+**Automatska sinkronizacija:** dok je aplikacija otvorena (ili svira glazbu u pozadini) svakih **30 sekundi**
+provjerava server (`GET /v1/sync/state`). Nove pjesme, albumi, videi i promjene iz admin panela, kao i promjene
+biblioteke s drugih uređaja (lajkovi, playliste), pojavljuju se same od sebe. Kad je aplikacija zatvorena,
+iOS ne dopušta 30-sekundni timer — tada iOS sam povremeno (najranije svakih ~15 min) pokrene osvježavanje
+u pozadini, a sve se odmah sinkronizira čim se aplikacija otvori.
 
 Ukućani/prijatelji: neka naprave vlastiti račun u aplikaciji. U admin panelu → **Users & roles** možeš
 nekome dati ulogu *editor* (smije dodavati glazbu) ili onemogućiti račun.
 
 ## 9. Varijante
 
-**Samo kućna mreža (bez domene):** u skripti odaberi opciju 3. Adresa je `http://192.168.x.x:8088`
-(skripta je ispiše). iPhone mora biti na istoj Wi-Fi mreži; iOS će pitati za dopuštenje "Local Network" — dopusti.
-Izvan kuće se tako ne može spojiti (za to: domena + HTTPS, ili VPN poput Tailscale/WireGuard).
+**Samo kućna mreža (bez domene):** opcija 3 u skripti služi samo za testiranje admin panela u pregledniku
+(`http://192.168.x.x:8088/admin/`). Aplikacija iz Releasesa se uvijek spaja na `https://app.streamero.net`,
+pa za nju server mora biti dostupan na toj domeni.
 
 **Server bez nginxa:** opcija 2 — STREAMERO sam pokrene Caddy koji izda HTTPS certifikat (portovi 80/443 moraju biti slobodni).
 

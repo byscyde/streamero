@@ -392,6 +392,9 @@ public extension APIClient {
     func validateDownloads(_ grantIds: [String]) async throws -> DownloadValidation { try await send(.json("POST", "v1/me/downloads/validate", ["grantIds": grantIds])) }
     func revokeDownload(_ grantId: String) async throws { try await sendEmpty(Endpoint("DELETE", "v1/me/downloads/\(grantId)")) }
 
+    // Sync
+    func syncState() async throws -> SyncState { try await send(Endpoint("GET", "v1/sync/state")) }
+
     // YouTube (official discovery API only)
     func youtubeSearch(_ q: String) async throws -> YouTubeSearch { try await send(Endpoint("GET", "v1/youtube/search", query: [URLQueryItem(name: "q", value: q)])) }
 }

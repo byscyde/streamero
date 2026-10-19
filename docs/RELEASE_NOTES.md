@@ -2,7 +2,8 @@
 
 1. Preuzmi **`STREAMERO.ipa`** ispod (Assets).
 2. U Featheru uvezi IPA, potpiši ga svojim certifikatom i instaliraj.
-3. Otvori STREAMERO i upiši adresu svog servera (npr. `https://music.tvojadomena.hr`).
+3. Otvori STREAMERO i prijavi se — aplikacija se sama spaja na `https://app.streamero.net` (ništa se ne upisuje).
+   Biblioteka i novi sadržaj sinkroniziraju se automatski svakih 30 s dok je aplikacija otvorena.
 
 Ovo je **nepotpisan** IPA — Feather (ili AltStore/SideStore/Sideloadly) ga potpisuje tvojim certifikatom.
 CarPlay i Sign in with Apple rade samo s certifikatom koji ima te Appleove dozvole; sve ostalo
@@ -20,5 +21,5 @@ sudo ./scripts/install-server.sh
 Minimalni zahtjevi servera: Linux x86_64 ili ARM64, 2 CPU jezgre, 4 GB RAM, Docker; prostor ovisno o glazbi/videu.
 
 ---
-*English:* download `STREAMERO.ipa`, sign and install it with Feather/AltStore, then enter your server address.
+*English:* download `STREAMERO.ipa`, sign and install it with Feather/AltStore, then sign in — the app connects to https://app.streamero.net automatically and syncs every 30 s while open.
 Server setup: `docs/INSTALACIJA_SERVERA.md` / `docs/DEPLOYMENT.md`.

@@ -551,3 +551,25 @@ public struct YouTubeSearch: Codable, Sendable {
     public var nextPageToken: String?
     public var attribution: String
 }
+
+/// Opaque change markers from `GET /v1/sync/state`; a different value means "refetch".
+public struct SyncState: Codable, Sendable, Equatable {
+    public var catalogVersion: String
+    public var libraryVersion: String
+    public var serverTime: Date
+    public init(catalogVersion: String, libraryVersion: String, serverTime: Date) {
+        self.catalogVersion = catalogVersion; self.libraryVersion = libraryVersion; self.serverTime = serverTime
+    }
+}
+
+/// Decides what to refresh after a poll. Pure logic so it is unit-tested.
+public struct SyncDiff: Sendable, Equatable {
+    public var catalogChanged: Bool
+    public var libraryChanged: Bool
+
+    public init(previous: SyncState?, current: SyncState) {
+        // The very first poll after launch only records the baseline: screens already loaded fresh data.
+        catalogChanged = previous.map { $0.catalogVersion != current.catalogVersion } ?? false
+        libraryChanged = previous.map { $0.libraryVersion != current.libraryVersion } ?? false
+    }
+}

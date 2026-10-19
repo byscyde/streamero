@@ -78,33 +78,35 @@ struct PrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var enabled
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(Theme.Typography.headline)
-            .foregroundStyle(.white)
+            .font(.system(size: 16, weight: .bold))
+            .foregroundStyle(Theme.Palette.onAccent)
             .padding(.vertical, 14)
             .padding(.horizontal, Theme.Spacing.xl)
-            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: Theme.Size.minTapTarget)
-            .background(Theme.Gradients.brandHorizontal.opacity(enabled ? 1 : 0.4), in: Capsule())
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: 48)
+            .background(Theme.Palette.accent.opacity(enabled ? 1 : 0.4), in: Capsule())
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
             .animation(Theme.Motion.quick, value: configuration.isPressed)
     }
 }
 
+/// Outlined pill (e.g. "Follow", "Continue with Apple").
 struct SecondaryButtonStyle: ButtonStyle {
+    var fullWidth = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(Theme.Typography.headline)
+            .font(.system(size: 14, weight: .bold))
             .foregroundStyle(Theme.Palette.textPrimary)
-            .padding(.vertical, 12)
-            .padding(.horizontal, Theme.Spacing.l)
-            .frame(minHeight: Theme.Size.minTapTarget)
-            .background(Theme.Palette.surfaceRaised, in: Capsule())
-            .overlay(Capsule().strokeBorder(Theme.Palette.separator, lineWidth: 1))
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: 32)
+            .overlay(Capsule().strokeBorder(Theme.Palette.textTertiary, lineWidth: 1))
+            .contentShape(Capsule())
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
             .animation(Theme.Motion.quick, value: configuration.isPressed)
     }
 }
 
-/// Large circular play button used on album/playlist/artist headers.
+/// The big green play button on collection headers.
 struct PlayCircleButton: View {
     var isPlaying = false
     var size: CGFloat = 56
@@ -115,15 +117,23 @@ struct PlayCircleButton: View {
             action()
         } label: {
             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                .font(.system(size: size * 0.4, weight: .bold))
-                .foregroundStyle(.white)
+                .font(.system(size: size * 0.38, weight: .black))
+                .foregroundStyle(Theme.Palette.onAccent)
                 .offset(x: isPlaying ? 0 : size * 0.03)
                 .frame(width: size, height: size)
-                .background(Theme.Gradients.brand, in: Circle())
-                .shadow(color: Theme.Palette.violet.opacity(0.45), radius: 14, y: 6)
+                .background(Theme.Palette.accent, in: Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressScaleStyle())
         .accessibilityLabel(isPlaying ? "Pause" : "Play")
+    }
+}
+
+struct PressScaleStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .animation(Theme.Motion.quick, value: configuration.isPressed)
     }
 }
 
@@ -153,14 +163,14 @@ struct SectionHeader: View {
     var subtitle: String?
     var action: (title: String, run: () -> Void)?
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .lastTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(Theme.Typography.title).foregroundStyle(Theme.Palette.textPrimary)
                 if let subtitle { Text(subtitle).font(Theme.Typography.caption).foregroundStyle(Theme.Palette.textSecondary) }
+                Text(title).font(.system(size: 22, weight: .bold)).foregroundStyle(Theme.Palette.textPrimary)
             }
             Spacer()
             if let action {
-                Button(action.title, action: action.run).font(Theme.Typography.caption).foregroundStyle(Theme.Palette.accent)
+                Button(action.title, action: action.run).font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.Palette.textSecondary)
             }
         }
         .padding(.horizontal, Theme.Spacing.screen)
@@ -172,9 +182,9 @@ struct ExplicitBadge: View {
     var body: some View {
         Text("E")
             .font(.system(size: 9, weight: .heavy))
-            .foregroundStyle(Theme.Palette.textPrimary)
+            .foregroundStyle(Theme.Palette.background)
             .frame(width: 14, height: 14)
-            .background(Theme.Palette.explicitBadge, in: RoundedRectangle(cornerRadius: 3))
+            .background(Theme.Palette.explicitBadge, in: RoundedRectangle(cornerRadius: 2))
             .accessibilityLabel("Explicit")
     }
 }
@@ -193,6 +203,7 @@ struct QualityBadge: View {
     }
 }
 
+/// Filter pill (All / Music / Videos, Playlists / Artists / Albums…).
 struct Chip: View {
     let title: String
     var selected = false
@@ -203,16 +214,34 @@ struct Chip: View {
             action()
         } label: {
             Text(title)
-                .font(Theme.Typography.callout.weight(.semibold))
+                .font(.system(size: 14, weight: .medium))
                 .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .foregroundStyle(selected ? Color.white : Theme.Palette.textPrimary)
-                .background {
-                    if selected { Capsule().fill(Theme.Gradients.brandHorizontal) } else { Capsule().fill(Theme.Palette.surfaceRaised) }
-                }
+                .frame(height: 32)
+                .foregroundStyle(selected ? Theme.Palette.onAccent : Theme.Palette.textPrimary)
+                .background(selected ? Theme.Palette.accent : Theme.Palette.surfaceHighlight, in: Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+
+/// Circular avatar button that opens the profile menu (top-left of the main screens).
+struct AvatarButton: View {
+    @Environment(AppModel.self) private var app
+    var size: CGFloat = 32
+    var body: some View {
+        Button { withAnimation(Theme.Motion.standard) { app.isMenuOpen = true } } label: {
+            ZStack {
+                Circle().fill(Theme.Palette.accent)
+                Text(String(app.user?.displayName.first ?? "S").uppercased())
+                    .font(.system(size: size * 0.45, weight: .bold))
+                    .foregroundStyle(Theme.Palette.onAccent)
+                if let url = app.avatarURL { ArtworkView(url: url, size: size, circular: true) }
+            }
+            .frame(width: size, height: size)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Profile and settings")
     }
 }
 

@@ -37,8 +37,7 @@ struct ProfileView: View {
                 NavigationLink(value: Route.recentlyPlayed) { Label("Listening history", systemImage: "clock") }
             }
             Section {
-                LabeledContent("Server", value: app.serverURL?.host ?? "—")
-                Button("Sign out", role: .destructive) { Task { await app.signOut() } }
+                Button("Log out", role: .destructive) { Task { await app.signOut() } }
             }
         }
         .streameroScreen()
@@ -50,10 +49,7 @@ struct ProfileView: View {
         .task { await app.refreshUser() }
     }
 
-    private var avatarURL: URL? {
-        guard let path = app.user?.avatarUrl, let base = app.serverURL else { return nil }
-        return URL(string: path, relativeTo: base)?.absoluteURL
-    }
+    private var avatarURL: URL? { app.avatarURL }
 
     private func upload(_ item: PhotosPickerItem) async {
         guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data),
@@ -76,6 +72,7 @@ struct ProfileView: View {
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var app
+    @Environment(SyncCenter.self) private var sync
     @Environment(SettingsStore.self) private var settings
     @Environment(DownloadManager.self) private var downloads
     @State private var displayName = ""
@@ -169,9 +166,17 @@ struct SettingsView: View {
                 Button("Delete account", role: .destructive) { confirmDelete = true }
             }
 
-            Section("Server") {
-                LabeledContent("Address", value: app.serverURL?.absoluteString ?? "—")
-                Button("Connect to a different server") { app.changeServer() }
+            Section {
+                LabeledContent("Last synced") {
+                    if let last = sync.lastSuccess {
+                        Text(last, format: .relative(presentation: .named))
+                    } else {
+                        Text("—")
+                    }
+                }
+                Button("Sync now") { Task { await sync.syncNow() } }
+            } header: { Text("Sync") } footer: {
+                Text("Your library and new releases sync automatically every 30 seconds while the app is open.")
             }
 
             Section {

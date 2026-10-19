@@ -8,8 +8,8 @@ on:
     paths: ['ios/**', '.github/workflows/ios.yml']
   workflow_dispatch:
     inputs:
-      default_server_url:
-        description: 'Optional server URL baked in as the default (users can change it in the app)'
+      server_url:
+        description: 'Override the built-in service URL (default https://app.streamero.net)'
         required: false
 
 permissions:
@@ -40,7 +40,7 @@ jobs:
           brew install xcodegen
       - name: Build
         env:
-          STREAMERO_DEFAULT_SERVER_URL: ${{ github.event.inputs.default_server_url }}
+          STREAMERO_SERVER_URL: ${{ github.event.inputs.server_url }}
         run: ./scripts/build-unsigned-ipa.sh
       - name: Show build errors
         if: failure()

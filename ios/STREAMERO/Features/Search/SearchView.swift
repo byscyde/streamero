@@ -128,26 +128,44 @@ struct SearchView: View {
     var body: some View {
         @Bindable var model = model
         ScrollView {
+            HStack(spacing: Theme.Spacing.m) {
+                AvatarButton()
+                Text("Search").font(Theme.Typography.screenTitle)
+                Spacer()
+            }
+            .padding(.horizontal, Theme.Spacing.screen)
+            .padding(.top, Theme.Spacing.s)
             LazyVStack(alignment: .leading, spacing: Theme.Spacing.l, pinnedViews: [.sectionHeaders]) {
                 Section {
                     content
                 } header: {
-                    VStack(spacing: Theme.Spacing.s) {
-                        HStack {
-                            Image(systemName: "magnifyingglass").foregroundStyle(Theme.Palette.textTertiary)
-                            TextField("Artists, songs, albums, videos", text: $model.query)
-                                .focused($focused)
-                                .submitLabel(.search)
-                                .autocorrectionDisabled()
-                                .onSubmit { model.commit() }
-                                .accessibilityIdentifier("searchField")
-                            if !model.query.isEmpty {
-                                Button { model.query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.Palette.textTertiary) }
-                                    .accessibilityLabel("Clear search")
+                    VStack(spacing: Theme.Spacing.m) {
+                        HStack(spacing: Theme.Spacing.m) {
+                            HStack(spacing: Theme.Spacing.s) {
+                                Image(systemName: "magnifyingglass").font(.system(size: 18, weight: .semibold))
+                                TextField("", text: $model.query, prompt: Text("What do you want to listen to?").foregroundStyle(Color(hex: 0x535353)))
+                                    .font(.system(size: 15, weight: .medium))
+                                    .focused($focused)
+                                    .submitLabel(.search)
+                                    .autocorrectionDisabled()
+                                    .textInputAutocapitalization(.never)
+                                    .onSubmit { model.commit() }
+                                    .accessibilityIdentifier("searchField")
+                                if !model.query.isEmpty {
+                                    Button { model.query = "" } label: { Image(systemName: "xmark") }
+                                        .accessibilityLabel("Clear search")
+                                }
+                            }
+                            .foregroundStyle(Color(hex: 0x121212))
+                            .padding(.horizontal, Theme.Spacing.m)
+                            .frame(height: 46)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: Theme.Radius.m, style: .continuous))
+                            if focused || !model.query.isEmpty {
+                                Button("Cancel") { model.query = ""; focused = false }
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(Theme.Palette.textPrimary)
                             }
                         }
-                        .padding(Theme.Spacing.m)
-                        .background(Theme.Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: Theme.Radius.m, style: .continuous))
                         if !model.query.isEmpty {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: Theme.Spacing.s) {
@@ -161,12 +179,14 @@ struct SearchView: View {
                     .padding(.horizontal, Theme.Spacing.screen)
                     .padding(.vertical, Theme.Spacing.s)
                     .background(Theme.Palette.background)
+                    .animation(Theme.Motion.quick, value: focused)
                 }
             }
+            .padding(.bottom, Theme.Spacing.xl)
         }
         .scrollDismissesKeyboard(.immediately)
         .streameroScreen()
-        .navigationTitle("Search")
+        .toolbar(.hidden, for: .navigationBar)
         .onChange(of: model.query) { model.queryChanged() }
         .task {
             model.api = app.api
@@ -184,7 +204,7 @@ struct SearchView: View {
             SkeletonRows(count: 5)
         } else if let r = model.results {
             if r.isEmpty && !model.loading {
-                EmptyStateView(symbol: "magnifyingglass", title: "No results for “\(model.query)”", message: "Check the spelling or try fewer words.")
+                EmptyStateView(symbol: "magnifyingglass", title: "Couldn't find “\(model.query)”", message: "Try searching again using a different spelling or keyword.")
             } else {
                 results(r)
             }
@@ -197,115 +217,108 @@ struct SearchView: View {
                 model.query = s.text
                 model.commit()
             } label: {
-                Label(s.text, systemImage: s.type == "artist" ? "music.mic" : s.type == "album" ? "square.stack" : s.type == "video" ? "play.rectangle" : "music.note")
-                    .foregroundStyle(Theme.Palette.textPrimary)
-                    .padding(.horizontal, Theme.Spacing.screen)
+                HStack(spacing: Theme.Spacing.m) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(Theme.Palette.textSecondary).frame(width: 24)
+                    Text(s.text).font(.system(size: 16)).foregroundStyle(Theme.Palette.textPrimary)
+                    Spacer()
+                }
+                .padding(.horizontal, Theme.Spacing.screen)
+                .padding(.vertical, 6)
             }
         }
     }
 
     @ViewBuilder private var browse: some View {
         if !model.recent.isEmpty {
-            SectionHeader(title: "Recent searches", action: ("Clear", { model.clearRecent() }))
-            ForEach(model.recent, id: \.self) { q in
+            SectionHeader(title: "Recent searches")
+            ForEach(model.recent.prefix(8), id: \.self) { q in
                 Button { model.query = q } label: {
-                    HStack {
-                        Image(systemName: "clock.arrow.circlepath").foregroundStyle(Theme.Palette.textTertiary)
-                        Text(q).foregroundStyle(Theme.Palette.textPrimary)
+                    HStack(spacing: Theme.Spacing.m) {
+                        Image(systemName: "clock.arrow.circlepath").foregroundStyle(Theme.Palette.textSecondary).frame(width: 24)
+                        Text(q).font(.system(size: 16)).foregroundStyle(Theme.Palette.textPrimary)
                         Spacer()
                     }
                     .padding(.horizontal, Theme.Spacing.screen)
+                    .padding(.vertical, 4)
                 }
             }
+            Button("Clear recent searches") { model.clearRecent() }
+                .buttonStyle(SecondaryButtonStyle())
+                .frame(maxWidth: .infinity)
         }
-        if !model.genres.isEmpty {
-            SectionHeader(title: "Browse")
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: Theme.Spacing.m), GridItem(.flexible())], spacing: Theme.Spacing.m) {
-                ForEach(Array(model.genres.prefix(24).enumerated()), id: \.element.id) { i, g in
-                    NavigationLink(value: Route.tag(kind: g.kind ?? "genre", name: g.name)) {
-                        Text(g.name.capitalized)
-                            .font(Theme.Typography.headline)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
-                            .padding(Theme.Spacing.m)
-                            .background(tileGradient(i), in: RoundedRectangle(cornerRadius: Theme.Radius.m, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
+        SectionHeader(title: "Browse all")
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: Theme.Spacing.m), GridItem(.flexible())], spacing: Theme.Spacing.m) {
+            NavigationLink(value: Route.videos) { CategoryTile(title: "Music videos", index: 2) }.buttonStyle(PressScaleStyle())
+            NavigationLink(value: Route.youtube) { CategoryTile(title: "YouTube", index: 4) }.buttonStyle(PressScaleStyle())
+            ForEach(Array(model.genres.prefix(40).enumerated()), id: \.element.id) { i, g in
+                NavigationLink(value: Route.tag(kind: g.kind ?? "genre", name: g.name)) {
+                    CategoryTile(title: g.name.capitalized, index: i + 5)
                 }
+                .buttonStyle(PressScaleStyle())
             }
-            .padding(.horizontal, Theme.Spacing.screen)
-        }
-        NavigationLink(value: Route.youtube) {
-            Label("Discover on YouTube", systemImage: "play.tv").font(Theme.Typography.callout.weight(.semibold))
         }
         .padding(.horizontal, Theme.Spacing.screen)
     }
 
-    private func tileGradient(_ i: Int) -> LinearGradient {
-        let palettes: [[Color]] = [[Theme.Palette.violet, Theme.Palette.blue], [Theme.Palette.blue, Theme.Palette.turquoise], [Theme.Palette.turquoise, Theme.Palette.violet], [Color(hex: 0x6D28D9), Color(hex: 0x1E3A8A)]]
-        return LinearGradient(colors: palettes[i % palettes.count], startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-
     @ViewBuilder private func results(_ r: SearchResults) -> some View {
         let tracks = r.tracks?.items ?? []
-        if let artists = r.artists?.items, !artists.isEmpty, model.filter == .all || model.filter == .artists {
-            if model.filter == .all {
-                Shelf(title: "Artists", items: artists) { a in NavigationLink(value: Route.artist(a.id)) { ArtistCard(artist: a, size: 100) }.buttonStyle(.plain) }
-            } else {
-                ForEach(artists) { a in
-                    NavigationLink(value: Route.artist(a.id)) {
-                        HStack(spacing: Theme.Spacing.m) {
-                            ArtworkView(url: a.artworkUrl, size: 52, placeholderSymbol: "music.mic", circular: true)
-                            Text(a.name).font(Theme.Typography.body.weight(.medium)).foregroundStyle(Theme.Palette.textPrimary)
-                            Spacer()
-                        }
-                        .padding(.horizontal, Theme.Spacing.screen)
-                    }
-                    .onAppear { if a.id == artists.last?.id { Task { await model.loadMore() } } }
-                }
+        let all = model.filter == .all
+        if all, let top = r.artists?.items.first {
+            NavigationLink(value: Route.artist(top.id)) {
+                MediaRow(title: top.name, subtitle: "Artist", artwork: top.artworkUrl, circular: true, symbol: "music.mic")
             }
+            .buttonStyle(RowButtonStyle())
         }
-        if !tracks.isEmpty, model.filter == .all || model.filter == .tracks {
-            if model.filter == .all { SectionHeader(title: "Songs") }
+        if !tracks.isEmpty, all || model.filter == .tracks {
             ForEach(Array(tracks.enumerated()), id: \.element.id) { i, t in
-                TrackRow(track: t) {
+                TrackRow(track: t, subtitle: "Song • \(t.artist.name)") {
                     model.commit()
                     player.play(tracks: tracks, startAt: i, context: PlaybackContext(type: "search", title: model.query))
                 }
                 .onAppear { if t.id == tracks.last?.id { Task { await model.loadMore() } } }
             }
         }
-        if let albums = r.albums?.items, !albums.isEmpty, model.filter == .all || model.filter == .albums {
-            if model.filter == .all {
-                Shelf(title: "Albums", items: albums) { a in NavigationLink(value: Route.album(a.id)) { AlbumCard(album: a) }.buttonStyle(.plain) }
-            } else {
-                grid(albums) { a in NavigationLink(value: Route.album(a.id)) { AlbumCard(album: a, size: 160) }.buttonStyle(.plain) }
+        if let artists = r.artists?.items, !artists.isEmpty, all || model.filter == .artists {
+            ForEach(all ? Array(artists.dropFirst()) : artists) { a in
+                NavigationLink(value: Route.artist(a.id)) {
+                    MediaRow(title: a.name, subtitle: "Artist", artwork: a.artworkUrl, circular: true, symbol: "music.mic")
+                }
+                .buttonStyle(RowButtonStyle())
+                .onAppear { if a.id == artists.last?.id { Task { await model.loadMore() } } }
             }
         }
-        if let playlists = r.playlists?.items, !playlists.isEmpty, model.filter == .all || model.filter == .playlists {
-            Shelf(title: "Playlists", items: playlists) { p in NavigationLink(value: Route.playlist(p.id)) { PlaylistCard(playlist: p) }.buttonStyle(.plain) }
+        if let albums = r.albums?.items, !albums.isEmpty, all || model.filter == .albums {
+            ForEach(albums) { a in
+                NavigationLink(value: Route.album(a.id)) {
+                    MediaRow(title: a.title, subtitle: "\(a.albumType == "single" ? "Single" : "Album") • \(a.artist.name)", artwork: a.artworkUrl, symbol: "square.stack")
+                }
+                .buttonStyle(RowButtonStyle())
+                .onAppear { if a.id == albums.last?.id { Task { await model.loadMore() } } }
+            }
         }
-        if let videos = r.videos?.items, !videos.isEmpty, model.filter == .all || model.filter == .videos {
+        if let playlists = r.playlists?.items, !playlists.isEmpty, all || model.filter == .playlists {
+            ForEach(playlists) { p in
+                NavigationLink(value: Route.playlist(p.id)) {
+                    MediaRow(title: p.title, subtitle: "Playlist", artwork: p.artworkUrl, mosaic: p.mosaicUrls, symbol: "music.note.list")
+                }
+                .buttonStyle(RowButtonStyle())
+            }
+        }
+        if let videos = r.videos?.items, !videos.isEmpty, all || model.filter == .videos {
             Shelf(title: "Videos", items: videos) { v in NavigationLink(value: Route.video(v.id)) { VideoCard(video: v) }.buttonStyle(.plain) }
         }
-        if let genres = r.genres?.items, !genres.isEmpty, model.filter == .all {
+        if let genres = r.genres?.items, !genres.isEmpty, all {
             SectionHeader(title: "Genres & moods")
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack {
-                    ForEach(genres) { g in
-                        NavigationLink(value: Route.tag(kind: g.kind ?? "genre", name: g.name)) { Text(g.name.capitalized) }.buttonStyle(SecondaryButtonStyle())
+                HStack(spacing: Theme.Spacing.m) {
+                    ForEach(Array(genres.enumerated()), id: \.element.id) { i, g in
+                        NavigationLink(value: Route.tag(kind: g.kind ?? "genre", name: g.name)) { CategoryTile(title: g.name.capitalized, index: i, width: 140, height: 80) }
+                            .buttonStyle(PressScaleStyle())
                     }
                 }
                 .padding(.horizontal, Theme.Spacing.screen)
             }
         }
         if model.loadingMore { ProgressView().frame(maxWidth: .infinity) }
-    }
-
-    private func grid<T: Identifiable, V: View>(_ items: [T], @ViewBuilder card: @escaping (T) -> V) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: Theme.Spacing.l)], spacing: Theme.Spacing.l) {
-            ForEach(items) { card($0) }
-        }
-        .padding(.horizontal, Theme.Spacing.screen)
     }
 }

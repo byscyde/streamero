@@ -5,24 +5,27 @@ import UIKit
 enum Theme {
     // MARK: Colour
 
-    /// Dark-first palette with a light variant. Accents are restrained violet → electric blue → turquoise.
+    /// Streaming-app dark palette: near-black canvas, grey elevation steps, white type, one green accent.
+    /// The accent is a single token, so the brand colour can be changed in one place.
     enum Palette {
-        static let background = dynamic(dark: 0x0B0B12, light: 0xF6F6FA)
-        static let surface = dynamic(dark: 0x14141D, light: 0xFFFFFF)
-        static let surfaceRaised = dynamic(dark: 0x1C1C28, light: 0xEEEEF5)
-        static let surfaceHighlight = dynamic(dark: 0x262635, light: 0xE3E3EE)
-        static let separator = dynamic(dark: 0x2A2A3A, light: 0xD9D9E3)
-        static let textPrimary = dynamic(dark: 0xF4F4F8, light: 0x101018)
-        static let textSecondary = dynamic(dark: 0xA3A3B8, light: 0x55556A)
-        static let textTertiary = dynamic(dark: 0x6E6E85, light: 0x8A8A9E)
-        static let violet = Color(hex: 0x8B5CF6)
-        static let blue = Color(hex: 0x3B82F6)
-        static let turquoise = Color(hex: 0x2DD4BF)
-        static let accent = violet
-        static let success = Color(hex: 0x34D399)
-        static let warning = Color(hex: 0xFBBF24)
-        static let danger = Color(hex: 0xF87171)
-        static let explicitBadge = dynamic(dark: 0x3A3A4D, light: 0xD4D4DE)
+        static let background = dynamic(dark: 0x121212, light: 0xFFFFFF)
+        static let surface = dynamic(dark: 0x181818, light: 0xF6F6F6)
+        static let surfaceRaised = dynamic(dark: 0x242424, light: 0xEDEDED)
+        static let surfaceHighlight = dynamic(dark: 0x2A2A2A, light: 0xE2E2E2)
+        static let tile = dynamic(dark: 0x2A2A2A, light: 0xEFEFEF)
+        static let separator = dynamic(dark: 0x2A2A2A, light: 0xDADADA)
+        static let textPrimary = dynamic(dark: 0xFFFFFF, light: 0x000000)
+        static let textSecondary = dynamic(dark: 0xB3B3B3, light: 0x6A6A6A)
+        static let textTertiary = dynamic(dark: 0x727272, light: 0x9A9A9A)
+        static let accent = Color(hex: 0x1FDF64)
+        static let onAccent = Color.black
+        static let violet = accent
+        static let blue = Color(hex: 0x509BF5)
+        static let turquoise = accent
+        static let success = accent
+        static let warning = Color(hex: 0xFFA42B)
+        static let danger = Color(hex: 0xF15E6C)
+        static let explicitBadge = dynamic(dark: 0xB3B3B3, light: 0x6A6A6A)
 
         static func dynamic(dark: UInt32, light: UInt32) -> Color {
             Color(UIColor { $0.userInterfaceStyle == .light ? UIColor(hex: light) : UIColor(hex: dark) })
@@ -30,25 +33,30 @@ enum Theme {
     }
 
     enum Gradients {
-        static let brand = LinearGradient(colors: [Palette.violet, Palette.blue, Palette.turquoise], startPoint: .topLeading, endPoint: .bottomTrailing)
-        static let brandHorizontal = LinearGradient(colors: [Palette.violet, Palette.blue, Palette.turquoise], startPoint: .leading, endPoint: .trailing)
+        /// Solid accent expressed as a gradient so existing `foregroundStyle(brand)` call sites stay valid.
+        static let brand = LinearGradient(colors: [Palette.accent, Palette.accent], startPoint: .top, endPoint: .bottom)
+        static let brandHorizontal = brand
+        /// Liked Songs tile.
+        static let likedSongs = LinearGradient(colors: [Color(hex: 0x450AF5), Color(hex: 0x8E8EE5), Color(hex: 0xC4EFD9)], startPoint: .topLeading, endPoint: .bottomTrailing)
         static func artworkWash(_ tint: Color) -> LinearGradient {
-            LinearGradient(colors: [tint.opacity(0.55), tint.opacity(0.15), Palette.background], startPoint: .top, endPoint: .bottom)
+            LinearGradient(colors: [tint.opacity(0.9), tint.opacity(0.35), Palette.background], startPoint: .top, endPoint: .bottom)
         }
         static let scrim = LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .center, endPoint: .bottom)
+        static let tabBar = LinearGradient(colors: [.black.opacity(0), .black.opacity(0.85), .black], startPoint: .top, endPoint: .bottom)
     }
 
     // MARK: Typography (Dynamic Type aware)
 
     enum Typography {
-        static let display = Font.system(.largeTitle, design: .rounded).weight(.bold)
-        static let title = Font.system(.title2, design: .rounded).weight(.bold)
-        static let headline = Font.system(.headline, design: .rounded)
+        static let display = Font.system(.largeTitle).weight(.heavy)
+        static let screenTitle = Font.system(size: 24, weight: .bold)
+        static let title = Font.system(.title2).weight(.bold)
+        static let headline = Font.system(.headline).weight(.bold)
         static let body = Font.system(.body)
-        static let callout = Font.system(.callout)
-        static let caption = Font.system(.caption).weight(.medium)
-        static let micro = Font.system(.caption2).weight(.semibold)
-        static let mono = Font.system(.caption, design: .monospaced).weight(.medium)
+        static let callout = Font.system(.subheadline)
+        static let caption = Font.system(.caption)
+        static let micro = Font.system(.caption2).weight(.bold)
+        static let mono = Font.system(.caption2).monospacedDigit()
     }
 
     // MARK: Layout
@@ -61,15 +69,15 @@ enum Theme {
         static let l: CGFloat = 16
         static let xl: CGFloat = 24
         static let xxl: CGFloat = 32
-        static let screen: CGFloat = 20
+        static let screen: CGFloat = 16
     }
 
     enum Radius {
-        static let s: CGFloat = 6
-        static let m: CGFloat = 10
-        static let l: CGFloat = 16
-        static let xl: CGFloat = 24
-        static let artwork: CGFloat = 8
+        static let s: CGFloat = 4
+        static let m: CGFloat = 6
+        static let l: CGFloat = 8
+        static let xl: CGFloat = 12
+        static let artwork: CGFloat = 4
     }
 
     enum Shadow {
@@ -85,7 +93,7 @@ enum Theme {
     }
 
     enum Size {
-        static let miniPlayerHeight: CGFloat = 64
+        static let miniPlayerHeight: CGFloat = 56
         static let rowArtwork: CGFloat = 48
         static let card: CGFloat = 150
         static let minTapTarget: CGFloat = 44

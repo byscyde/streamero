@@ -6,6 +6,7 @@ import UIKit
 struct StreameroApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var model = AppModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -16,10 +17,15 @@ struct StreameroApp: App {
                 .environment(model.settings)
                 .environment(model.downloads)
                 .environment(model.network)
+                .environment(model.sync)
                 .preferredColorScheme(model.settings.values.appearance.colorScheme)
                 .tint(Theme.Palette.accent)
                 .onOpenURL { model.handle(url: $0) }
                 .task { await model.bootstrap() }
+                .onChange(of: scenePhase) { _, phase in
+                    guard model.phase == .signedIn, phase != .inactive else { return }
+                    model.sync.scenePhaseChanged(active: phase == .active)
+                }
         }
         .modelContainer(model.container)
     }
@@ -28,6 +34,7 @@ struct StreameroApp: App {
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UIApplication.shared.beginReceivingRemoteControlEvents()
+        SyncCenter.registerBackgroundTask() // must happen before launch finishes
         return true
     }
 

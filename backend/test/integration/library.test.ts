@@ -237,6 +237,26 @@ describe('search, discovery and home', () => {
   });
 });
 
+describe('sync state', () => {
+  it('changes the library version only for the affected user and the catalog version on catalog edits', async () => {
+    const s1 = (await ctx.http.get('/v1/sync/state').set(auth(alice.token)).expect(200)).body;
+    const b1 = (await ctx.http.get('/v1/sync/state').set(auth(bob.token)).expect(200)).body;
+    expect(s1.catalogVersion).toBe(b1.catalogVersion);
+    // Unchanged state gives the same versions.
+    expect((await ctx.http.get('/v1/sync/state').set(auth(alice.token))).body.libraryVersion).toBe(s1.libraryVersion);
+    await ctx.http.put(`/v1/me/albums/${albumId}`).set(auth(bob.token)).expect(200);
+    await ctx.http.delete(`/v1/me/albums/${albumId}`).set(auth(alice.token)).expect(200);
+    const s2 = (await ctx.http.get('/v1/sync/state').set(auth(alice.token))).body;
+    const b2 = (await ctx.http.get('/v1/sync/state').set(auth(bob.token))).body;
+    expect(s2.libraryVersion).not.toBe(s1.libraryVersion);
+    expect(b2.libraryVersion).not.toBe(b1.libraryVersion);
+    expect(s2.catalogVersion).toBe(s1.catalogVersion);
+    await ctx.db.query(`INSERT INTO tracks (title, artist_id, duration_ms, status) VALUES ('Brand New', $1, 1000, 'ready')`, [artistId]);
+    const s3 = (await ctx.http.get('/v1/sync/state').set(auth(alice.token))).body;
+    expect(s3.catalogVersion).not.toBe(s2.catalogVersion);
+  });
+});
+
 describe('offline downloads', () => {
   it('grants downloads only for eligible tracks and revokes on catalog changes', async () => {
     const admin = await registerUser(ctx, 'admin');

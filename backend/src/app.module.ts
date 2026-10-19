@@ -19,6 +19,7 @@ import { RecommendationsModule } from './recommendations/recommendations.module.
 import { RedisModule, RedisService } from './redis/redis.module.js';
 import { SearchModule } from './search/search.module.js';
 import { StreamingModule } from './streaming/streaming.module.js';
+import { SyncModule } from './sync/sync.module.js';
 import { UsersModule } from './users/users.module.js';
 import { YoutubeModule } from './youtube/youtube.module.js';
 
@@ -65,6 +66,7 @@ const config = loadConfig();
     HomeModule,
     DownloadsModule,
     YoutubeModule,
+    SyncModule,
     AdminModule,
     HealthModule,
   ],

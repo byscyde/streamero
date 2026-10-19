@@ -32,23 +32,23 @@ struct TrackRow: View {
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(track.title)
-                        .font(Theme.Typography.body.weight(.medium))
+                        .font(.system(size: 16))
                         .foregroundStyle(isCurrent ? Theme.Palette.accent : Theme.Palette.textPrimary)
                         .lineLimit(1)
                     HStack(spacing: 5) {
                         if track.explicit { ExplicitBadge() }
                         if downloads.localFile(forTrack: track.id) != nil {
-                            Image(systemName: "arrow.down.circle.fill").font(.caption2).foregroundStyle(Theme.Palette.turquoise).accessibilityLabel("Downloaded")
+                            Image(systemName: "arrow.down.circle.fill").font(.caption2).foregroundStyle(Theme.Palette.accent).accessibilityLabel("Downloaded")
                         }
                         Text(subtitle ?? track.artist.name)
-                            .font(Theme.Typography.caption)
+                            .font(.system(size: 14))
                             .foregroundStyle(Theme.Palette.textSecondary)
                             .lineLimit(1)
                     }
                 }
                 Spacer(minLength: 0)
                 if library.contains(.track, track.id) {
-                    Image(systemName: "heart.fill").font(.caption).foregroundStyle(Theme.Palette.violet).accessibilityLabel("Liked")
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: 16)).foregroundStyle(Theme.Palette.accent).accessibilityLabel("Liked")
                 }
                 TrackMenu(track: track) {
                     Image(systemName: "ellipsis")
@@ -114,7 +114,7 @@ struct TrackMenuItems: View {
         if let videoId = track.videoId {
             NavigationLink(value: Route.video(videoId)) { Label("Watch music video", systemImage: "play.rectangle") }
         }
-        if let url = model.serverURL?.appendingPathComponent("v1/tracks/\(track.id)") {
+        if let url = Optional(ServerConfig.url.appendingPathComponent("v1/tracks/\(track.id)")) {
             ShareLink(item: url, subject: Text(track.title), message: Text("\(track.title) — \(track.artist.name) on STREAMERO")) { Label("Share", systemImage: "square.and.arrow.up") }
         }
     }

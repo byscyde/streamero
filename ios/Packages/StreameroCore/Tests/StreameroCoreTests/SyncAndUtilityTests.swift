@@ -76,3 +76,18 @@ final class SyncAndUtilityTests: XCTestCase {
         XCTAssertEqual(SourceQuality(codec: "aac", lossless: false, bitrateKbps: 256).summary, "AAC · 256 kbps")
     }
 }
+
+final class SyncDiffTests: XCTestCase {
+    func testDiff() {
+        let a = SyncState(catalogVersion: "c1", libraryVersion: "l1", serverTime: Date())
+        XCTAssertEqual(SyncDiff(previous: nil, current: a), SyncDiff(previous: a, current: a))
+        XCTAssertFalse(SyncDiff(previous: a, current: a).catalogChanged)
+        var b = a
+        b.libraryVersion = "l2"
+        let d = SyncDiff(previous: a, current: b)
+        XCTAssertTrue(d.libraryChanged)
+        XCTAssertFalse(d.catalogChanged)
+        b.catalogVersion = "c2"
+        XCTAssertTrue(SyncDiff(previous: a, current: b).catalogChanged)
+    }
+}

@@ -1,57 +1,286 @@
 import StreameroCore
 import SwiftUI
 
+/// "Your Library": filter chips, sort, list/grid, pinned Liked Songs and Downloaded, then playlists, albums and artists.
 struct LibraryView: View {
+    enum Filter: String, CaseIterable, Identifiable {
+        case playlists = "Playlists", artists = "Artists", albums = "Albums", downloaded = "Downloaded"
+        var id: String { rawValue }
+    }
+    enum Sort: String, CaseIterable, Identifiable {
+        case recents = "Recents", alphabetical = "Alphabetical", creator = "Creator"
+        var id: String { rawValue }
+    }
+
+    private struct Entry: Identifiable {
+        let id: String
+        let route: Route
+        let title: String
+        let subtitle: String
+        var artwork: URL?
+        var mosaic: [URL] = []
+        var circular = false
+        var symbol = "music.note.list"
+        let filter: Filter
+        let creator: String
+        let order: Int
+    }
+
     @Environment(AppModel.self) private var app
     @Environment(LibraryStore.self) private var library
     @Environment(DownloadManager.self) private var downloads
+    @Environment(SyncCenter.self) private var sync
     @State private var summary: LibrarySummary?
-    @State private var showCreate = false
+    @State private var playlists: [Playlist] = []
+    @State private var albums: [Album] = []
+    @State private var artists: [Artist] = []
+    @State private var filter: Filter?
+    @State private var sort: Sort = .recents
+    @State private var grid = false
+    @State private var searching = false
+    @State private var query = ""
 
     var body: some View {
-        List {
-            Section {
-                row(.likedSongs, "Liked Songs", "heart.fill", count: summary?.likedTracks ?? library.liked.count, gradient: true)
-                row(.playlists, "Playlists", "music.note.list", count: summary.map { $0.ownPlaylists + $0.savedPlaylists })
-                row(.savedAlbums, "Albums", "square.stack.fill", count: summary?.albums ?? library.albums.count)
-                row(.followedArtists, "Artists", "music.mic", count: summary?.artists ?? library.artists.count)
-                row(.downloads, "Downloaded", "arrow.down.circle.fill", count: downloads.records.filter { $0.state == .completed }.count)
-                row(.recentlyPlayed, "Recently played", "clock.fill", count: nil)
-                row(.likedVideos, "Liked videos", "play.rectangle.fill", count: summary?.likedVideos ?? library.videos.count)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                Section {
+                    sortBar
+                    if grid { gridContent } else { listContent }
+                } header: { header }
             }
-            .listRowBackground(Theme.Palette.background)
-            .listRowSeparator(.hidden)
+            .padding(.bottom, Theme.Spacing.xl)
         }
-        .listStyle(.plain)
         .streameroScreen()
-        .navigationTitle("Library")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button { showCreate = true } label: { Image(systemName: "plus") }.accessibilityLabel("New playlist")
-            }
-        }
-        .sheet(isPresented: $showCreate) { CreatePlaylistSheet() }
-        .task(id: library.revision) { summary = try? await app.api?.librarySummary() }
+        .toolbar(.hidden, for: .navigationBar)
+        .task(id: "\(library.revision)|\(sync.libraryRevision)") { await load() }
         .refreshable {
             await library.flush()
-            summary = try? await app.api?.librarySummary()
+            await load()
         }
     }
 
-    private func row(_ route: Route, _ title: String, _ symbol: String, count: Int?, gradient: Bool = false) -> some View {
-        NavigationLink(value: route) {
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             HStack(spacing: Theme.Spacing.m) {
-                RoundedRectangle(cornerRadius: Theme.Radius.s, style: .continuous)
-                    .fill(gradient ? AnyShapeStyle(Theme.Gradients.brand) : AnyShapeStyle(Theme.Palette.surfaceRaised))
-                    .frame(width: 52, height: 52)
-                    .overlay(Image(systemName: symbol).font(.title3.weight(.semibold)).foregroundStyle(gradient ? AnyShapeStyle(.white) : AnyShapeStyle(Theme.Gradients.brand)))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(Theme.Typography.headline)
-                    if let count { Text(Format.count(count, "item")).font(Theme.Typography.caption).foregroundStyle(Theme.Palette.textSecondary) }
+                AvatarButton()
+                Text("Your Library").font(Theme.Typography.screenTitle)
+                Spacer()
+                Button { withAnimation(Theme.Motion.quick) { searching.toggle(); if !searching { query = "" } } } label: {
+                    Image(systemName: "magnifyingglass").font(.system(size: 20, weight: .semibold))
+                }
+                .accessibilityLabel("Search in Your Library")
+                Button { app.showCreatePlaylist = true } label: { Image(systemName: "plus").font(.system(size: 22, weight: .regular)) }
+                    .accessibilityLabel("Create playlist")
+            }
+            .foregroundStyle(Theme.Palette.textPrimary)
+            if searching {
+                TextField("Search in Your Library", text: $query)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .padding(.horizontal, Theme.Spacing.m)
+                    .frame(height: 36)
+                    .background(Theme.Palette.surfaceHighlight, in: RoundedRectangle(cornerRadius: Theme.Radius.s))
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Theme.Spacing.s) {
+                    if filter != nil {
+                        Button { withAnimation(Theme.Motion.quick) { filter = nil } } label: {
+                            Image(systemName: "xmark").font(.system(size: 12, weight: .bold))
+                                .frame(width: 32, height: 32)
+                                .background(Theme.Palette.surfaceHighlight, in: Circle())
+                        }
+                        .foregroundStyle(Theme.Palette.textPrimary)
+                        .accessibilityLabel("Clear filter")
+                    }
+                    ForEach(Filter.allCases.filter { filter == nil || filter == $0 }) { f in
+                        Chip(title: f.rawValue, selected: filter == f) { withAnimation(Theme.Motion.quick) { filter = filter == f ? nil : f } }
+                    }
                 }
             }
-            .padding(.vertical, 4)
         }
+        .padding(.horizontal, Theme.Spacing.screen)
+        .padding(.top, Theme.Spacing.s)
+        .padding(.bottom, Theme.Spacing.m)
+        .background(Theme.Palette.background)
+    }
+
+    private var sortBar: some View {
+        HStack {
+            Menu {
+                Picker("Sort by", selection: $sort) { ForEach(Sort.allCases) { Text($0.rawValue).tag($0) } }
+            } label: {
+                Label(sort.rawValue, systemImage: "arrow.up.arrow.down").font(.system(size: 13, weight: .semibold))
+            }
+            Spacer()
+            Button { withAnimation(Theme.Motion.quick) { grid.toggle() } } label: {
+                Image(systemName: grid ? "list.bullet" : "square.grid.2x2").font(.system(size: 15, weight: .semibold))
+            }
+            .accessibilityLabel(grid ? "Show as list" : "Show as grid")
+        }
+        .foregroundStyle(Theme.Palette.textPrimary)
+        .padding(.horizontal, Theme.Spacing.screen)
+        .padding(.vertical, Theme.Spacing.s)
+    }
+
+    // MARK: Content
+
+    private var showsPinned: Bool { query.isEmpty && (filter == nil || filter == .playlists || filter == .downloaded) }
+    private var likedCount: Int { summary?.likedTracks ?? library.liked.count }
+    private var downloadedCount: Int { downloads.records.filter { $0.state == .completed }.count }
+
+    @ViewBuilder private var listContent: some View {
+        if showsPinned {
+            if filter != .downloaded {
+                NavigationLink(value: Route.likedSongs) {
+                    HStack(spacing: Theme.Spacing.m) {
+                        LikedSongsArtwork(size: 64)
+                        pinnedText("Liked Songs", "Playlist • \(Format.count(likedCount, "song"))")
+                    }
+                    .padding(.horizontal, Theme.Spacing.screen).padding(.vertical, 6).contentShape(Rectangle())
+                }
+                .buttonStyle(RowButtonStyle())
+            }
+            NavigationLink(value: Route.downloads) {
+                HStack(spacing: Theme.Spacing.m) {
+                    PinnedSymbolArtwork(symbol: "arrow.down", colour: Color(hex: 0x006450), size: 64)
+                    pinnedText("Downloaded", Format.count(downloadedCount, "item"))
+                }
+                .padding(.horizontal, Theme.Spacing.screen).padding(.vertical, 6).contentShape(Rectangle())
+            }
+            .buttonStyle(RowButtonStyle())
+            if filter == nil {
+                NavigationLink(value: Route.likedVideos) {
+                    HStack(spacing: Theme.Spacing.m) {
+                        PinnedSymbolArtwork(symbol: "play.rectangle.fill", colour: Color(hex: 0x8D67AB), size: 64)
+                        pinnedText("Liked Videos", Format.count(summary?.likedVideos ?? library.videos.count, "video"))
+                    }
+                    .padding(.horizontal, Theme.Spacing.screen).padding(.vertical, 6).contentShape(Rectangle())
+                }
+                .buttonStyle(RowButtonStyle())
+            }
+        }
+        ForEach(entries) { e in
+            NavigationLink(value: e.route) {
+                MediaRow(title: e.title, subtitle: e.subtitle, artwork: e.artwork, mosaic: e.mosaic, circular: e.circular, symbol: e.symbol, size: 64)
+                    .padding(.vertical, 2)
+            }
+            .buttonStyle(RowButtonStyle())
+        }
+        if entries.isEmpty && !showsPinned {
+            EmptyStateView(symbol: "books.vertical", title: "Nothing here yet", message: "Things you save, follow or download will appear here.")
+        }
+    }
+
+    private var gridContent: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: Theme.Spacing.m), GridItem(.flexible(), spacing: Theme.Spacing.m), GridItem(.flexible())], alignment: .leading, spacing: Theme.Spacing.l) {
+            if showsPinned && filter != .downloaded {
+                NavigationLink(value: Route.likedSongs) {
+                    gridCell(artwork: { LikedSongsArtwork(size: $0) }, title: "Liked Songs", subtitle: "Playlist")
+                }
+                .buttonStyle(PressScaleStyle())
+            }
+            if showsPinned {
+                NavigationLink(value: Route.downloads) {
+                    gridCell(artwork: { PinnedSymbolArtwork(symbol: "arrow.down", colour: Color(hex: 0x006450), size: $0) }, title: "Downloaded", subtitle: Format.count(downloadedCount, "item"))
+                }
+                .buttonStyle(PressScaleStyle())
+            }
+            ForEach(entries) { e in
+                NavigationLink(value: e.route) {
+                    gridCell(artwork: { size in
+                        if !e.mosaic.isEmpty && e.artwork == nil { MosaicArtwork(urls: e.mosaic, size: size) } else { ArtworkView(url: e.artwork, size: size, placeholderSymbol: e.symbol, circular: e.circular) }
+                    }, title: e.title, subtitle: e.subtitle)
+                }
+                .buttonStyle(PressScaleStyle())
+            }
+        }
+        .padding(.horizontal, Theme.Spacing.screen)
+    }
+
+    private func gridCell<A: View>(@ViewBuilder artwork: @escaping (CGFloat) -> A, title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            GeometryReader { geo in artwork(geo.size.width) }.aspectRatio(1, contentMode: .fit)
+            Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.Palette.textPrimary).lineLimit(1)
+            Text(subtitle).font(.system(size: 12)).foregroundStyle(Theme.Palette.textSecondary).lineLimit(1)
+        }
+    }
+
+    private func pinnedText(_ title: String, _ subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title).font(.system(size: 16)).foregroundStyle(Theme.Palette.textPrimary)
+            HStack(spacing: 4) {
+                Image(systemName: "pin.fill").font(.system(size: 10)).foregroundStyle(Theme.Palette.accent).rotationEffect(.degrees(45))
+                Text(subtitle).font(.system(size: 14)).foregroundStyle(Theme.Palette.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var entries: [Entry] {
+        var out: [Entry] = []
+        for (i, p) in playlists.enumerated() {
+            let owner = p.isOwner ? (app.user?.displayName ?? "you") : (p.owner?.displayName ?? "STREAMERO")
+            out.append(Entry(id: "p" + p.id, route: .playlist(p.id), title: p.title, subtitle: "Playlist • \(owner)", artwork: p.artworkUrl, mosaic: p.mosaicUrls,
+                             filter: .playlists, creator: owner, order: i))
+        }
+        for (i, a) in albums.enumerated() where library.contains(.album, a.id) {
+            out.append(Entry(id: "a" + a.id, route: .album(a.id), title: a.title, subtitle: "Album • \(a.artist.name)", artwork: a.artworkUrl, symbol: "square.stack",
+                             filter: .albums, creator: a.artist.name, order: i))
+        }
+        for (i, a) in artists.enumerated() {
+            out.append(Entry(id: "r" + a.id, route: .artist(a.id), title: a.name, subtitle: "Artist", artwork: a.artworkUrl, circular: true, symbol: "music.mic",
+                             filter: .artists, creator: a.name, order: i))
+        }
+        if let filter {
+            if filter == .downloaded {
+                out = [] // downloads are per song/video; they are all reachable through the pinned "Downloaded" row
+            } else {
+                out = out.filter { $0.filter == filter }
+            }
+        }
+        if !query.isEmpty { out = out.filter { $0.title.localizedCaseInsensitiveContains(query) || $0.subtitle.localizedCaseInsensitiveContains(query) } }
+        switch sort {
+        case .recents: out.sort { $0.order == $1.order ? $0.title < $1.title : $0.order < $1.order }
+        case .alphabetical: out.sort { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        case .creator: out.sort { $0.creator.localizedCaseInsensitiveCompare($1.creator) == .orderedAscending }
+        }
+        return out
+    }
+
+    private func load() async {
+        guard let api = app.api else { return }
+        async let s = try? api.librarySummary()
+        async let p = try? api.myPlaylists(limit: 200).items
+        async let a = try? api.savedAlbums(limit: 200).items
+        async let r = try? api.followedArtists(limit: 200, sort: "recent").items
+        let (summary, playlists, albums, artists) = await (s, p, a, r)
+        if let summary { self.summary = summary }
+        if let playlists { self.playlists = playlists }
+        if let albums { self.albums = albums }
+        if let artists { self.artists = artists }
+    }
+}
+
+/// The Liked Songs cover: gradient square with a white heart.
+struct LikedSongsArtwork: View {
+    var size: CGFloat
+    var body: some View {
+        RoundedRectangle(cornerRadius: Theme.Radius.artwork, style: .continuous)
+            .fill(Theme.Gradients.likedSongs)
+            .frame(width: size, height: size)
+            .overlay(Image(systemName: "heart.fill").font(.system(size: size * 0.38)).foregroundStyle(.white))
+    }
+}
+
+struct PinnedSymbolArtwork: View {
+    let symbol: String
+    let colour: Color
+    var size: CGFloat
+    var body: some View {
+        RoundedRectangle(cornerRadius: Theme.Radius.artwork, style: .continuous)
+            .fill(colour.gradient)
+            .frame(width: size, height: size)
+            .overlay(Image(systemName: symbol).font(.system(size: size * 0.38, weight: .bold)).foregroundStyle(.white))
     }
 }
 
@@ -73,7 +302,7 @@ struct LikedSongsView: View {
     var body: some View {
         List {
             Section {
-                CollectionHeader(title: "Liked Songs", subtitle: Format.count(tracks.count, "song"), artwork: nil, symbol: "heart.fill",
+                CollectionHeader(title: "Liked Songs", subtitle: Format.count(tracks.count, "song"), artwork: nil, symbol: "heart.fill", likedSongs: true,
                                  onPlay: { play(shuffle: false) }, onShuffle: { play(shuffle: true) },
                                  onDownload: { Task { await downloads.download(tracks: tracks) }; app.show("Downloading \(tracks.count) songs", symbol: "arrow.down.circle") })
             }
@@ -141,44 +370,70 @@ struct LikedSongsView: View {
     }
 }
 
-/// Header with artwork, title and play/shuffle/download actions for collections.
+/// Collection header: centred artwork over a colour wash taken from the artwork, left-aligned title,
+/// then an action row with secondary actions on the left and shuffle + the green play button on the right.
 struct CollectionHeader: View {
     let title: String
     var subtitle: String?
     let artwork: URL?
     var mosaic: [URL] = []
     var symbol = "music.note.list"
+    var likedSongs = false
     var onPlay: () -> Void
     var onShuffle: () -> Void
     var onDownload: (() -> Void)?
+    var saved: Bool?
+    var onSave: (() -> Void)?
     @Environment(AudioPlayer.self) private var player
+    @State private var tint = Theme.Palette.surfaceHighlight
 
     var body: some View {
-        VStack(spacing: Theme.Spacing.l) {
+        VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             Group {
-                if artwork == nil && mosaic.isEmpty {
-                    RoundedRectangle(cornerRadius: Theme.Radius.l, style: .continuous).fill(Theme.Gradients.brand)
-                        .frame(width: 200, height: 200)
-                        .overlay(Image(systemName: symbol).font(.system(size: 64, weight: .bold)).foregroundStyle(.white))
+                if likedSongs {
+                    LikedSongsArtwork(size: 230)
+                } else if artwork == nil && mosaic.isEmpty {
+                    PinnedSymbolArtwork(symbol: symbol, colour: Color(hex: 0x535353), size: 230)
                 } else if artwork == nil {
-                    MosaicArtwork(urls: mosaic, size: 220)
+                    MosaicArtwork(urls: mosaic, size: 230)
                 } else {
-                    ArtworkView(url: artwork, size: 220, cornerRadius: Theme.Radius.l)
+                    ArtworkView(url: artwork, size: 230)
                 }
             }
-            .shadow(color: Theme.Shadow.artworkColor, radius: Theme.Shadow.artworkRadius, y: 12)
-            VStack(spacing: 4) {
-                Text(title).font(Theme.Typography.title).multilineTextAlignment(.center)
-                if let subtitle { Text(subtitle).font(Theme.Typography.callout).foregroundStyle(Theme.Palette.textSecondary).multilineTextAlignment(.center) }
+            .shadow(color: .black.opacity(0.5), radius: 20, y: 10)
+            .frame(maxWidth: .infinity)
+            .padding(.top, Theme.Spacing.l)
+            .padding(.bottom, Theme.Spacing.s)
+
+            Text(title).font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.Palette.textPrimary).lineLimit(3)
+            if let subtitle {
+                Text(subtitle).font(.system(size: 13)).foregroundStyle(Theme.Palette.textSecondary).lineLimit(4)
             }
-            HStack(spacing: Theme.Spacing.xl) {
-                if let onDownload { IconButton(systemName: "arrow.down.circle", label: "Download all", action: onDownload) }
+            HStack(spacing: Theme.Spacing.l) {
+                if let onSave, let saved {
+                    IconButton(systemName: saved ? "checkmark.circle.fill" : "plus.circle", label: saved ? "Remove from Your Library" : "Save to Your Library",
+                               size: 26, tint: saved ? Theme.Palette.accent : Theme.Palette.textSecondary, action: onSave)
+                }
+                if let onDownload {
+                    IconButton(systemName: "arrow.down.circle", label: "Download", size: 26, tint: Theme.Palette.textSecondary, action: onDownload)
+                }
+                Spacer()
+                IconButton(systemName: "shuffle", label: "Shuffle", size: 24, tint: player.queue.shuffle ? Theme.Palette.accent : Theme.Palette.textSecondary, action: onShuffle)
                 PlayCircleButton(action: onPlay)
-                IconButton(systemName: "shuffle", label: "Shuffle", action: onShuffle)
             }
         }
-        .padding(.vertical, Theme.Spacing.l)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Theme.Spacing.screen)
+        .padding(.bottom, Theme.Spacing.s)
+        .background(
+            LinearGradient(colors: [tint.opacity(0.85), tint.opacity(0.25), .clear], startPoint: .top, endPoint: .bottom)
+                .padding(.top, -400) // extend the wash under the navigation bar
+        )
+        .task(id: artwork ?? mosaic.first) {
+            if likedSongs { tint = Color(hex: 0x5038A0); return }
+            if let u = artworkURL(artwork ?? mosaic.first, points: 50), let img = await ImagePipeline.shared.image(for: u, pixelSize: 50), let c = img.averageColor {
+                withAnimation { tint = Color(c) }
+            }
+        }
     }
 }
 

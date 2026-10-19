@@ -4,57 +4,65 @@ import SwiftUI
 import WebKit
 
 struct VideosView: View {
+    var body: some View {
+        ScrollView {
+            VideosContent().padding(.vertical, Theme.Spacing.l)
+        }
+        .streameroScreen()
+        .navigationTitle("Videos")
+        .toolbar { NavigationLink(value: Route.youtube) { Image(systemName: "play.tv") }.accessibilityLabel("YouTube discovery") }
+    }
+}
+
+/// Video catalogue body, shared by the Videos screen and the Home "Videos" filter. Reloads on catalog sync.
+struct VideosContent: View {
     @Environment(AppModel.self) private var app
+    @Environment(SyncCenter.self) private var sync
     @State private var videos: [Video] = []
     @State private var continueWatching: [Video] = []
     @State private var nextOffset: Int? = 0
     @State private var error: Error?
     @State private var loading = false
+    @State private var loaded = false
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: Theme.Spacing.xl) {
-                if !continueWatching.isEmpty {
-                    Shelf(title: "Continue watching", items: continueWatching) { v in NavigationLink(value: Route.video(v.id)) { VideoCard(video: v) }.buttonStyle(.plain) }
-                }
-                if !videos.isEmpty {
-                    SectionHeader(title: "All videos")
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: Theme.Spacing.l)], spacing: Theme.Spacing.xl) {
-                        ForEach(videos) { v in
-                            NavigationLink(value: Route.video(v.id)) { VideoCard(video: v, width: 340) }
-                                .buttonStyle(.plain)
-                                .onAppear { if v.id == videos.last?.id { Task { await load(reset: false) } } }
-                        }
-                    }
-                    .padding(.horizontal, Theme.Spacing.screen)
-                } else if let error {
-                    ErrorStateView(error: error) { Task { await load(reset: true) } }
-                } else if loading {
-                    HStack { Spacer(); ProgressView(); Spacer() }.padding(.top, 80)
-                } else {
-                    EmptyStateView(symbol: "play.rectangle.on.rectangle", title: "No videos yet", message: "Music videos and films added to this server will appear here.")
-                }
+        LazyVStack(alignment: .leading, spacing: Theme.Spacing.xl) {
+            if !continueWatching.isEmpty {
+                Shelf(title: "Continue watching", items: continueWatching) { v in NavigationLink(value: Route.video(v.id)) { VideoCard(video: v) }.buttonStyle(.plain) }
             }
-            .padding(.vertical, Theme.Spacing.l)
+            if !videos.isEmpty {
+                SectionHeader(title: "All videos")
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: Theme.Spacing.l)], spacing: Theme.Spacing.xl) {
+                    ForEach(videos) { v in
+                        NavigationLink(value: Route.video(v.id)) { VideoCard(video: v, width: 340) }
+                            .buttonStyle(.plain)
+                            .onAppear { if v.id == videos.last?.id { Task { await load(reset: false) } } }
+                    }
+                }
+                .padding(.horizontal, Theme.Spacing.screen)
+            } else if let error {
+                ErrorStateView(error: error) { Task { await load(reset: true) } }
+            } else if loading || !loaded {
+                HStack { Spacer(); ProgressView(); Spacer() }.padding(.top, 80)
+            } else {
+                EmptyStateView(symbol: "play.rectangle.on.rectangle", title: "No videos yet", message: "New videos will appear here automatically as soon as they are added.")
+            }
         }
-        .refreshable { await load(reset: true) }
-        .streameroScreen()
-        .navigationTitle("Videos")
-        .toolbar { NavigationLink(value: Route.youtube) { Image(systemName: "play.tv") }.accessibilityLabel("YouTube discovery") }
-        .task { if videos.isEmpty { await load(reset: true) } }
+        .task(id: sync.catalogRevision &+ sync.libraryRevision) { await load(reset: true) }
     }
 
     private func load(reset: Bool) async {
         guard let api = app.api, !loading, reset || nextOffset != nil else { return }
         loading = true
-        defer { loading = false }
+        defer { loading = false; loaded = true }
         do {
             let page = try await api.videos(limit: 30, offset: reset ? 0 : (nextOffset ?? 0))
             videos = reset ? page.items : videos + page.items
             nextOffset = page.nextOffset
             if reset { continueWatching = videos.filter { ($0.progress?.positionMs ?? 0) > 5000 && $0.progress?.completed == false } }
             error = nil
-        } catch { self.error = error }
+        } catch is CancellationError {
+        } catch { if videos.isEmpty { self.error = error } }
     }
 }
 

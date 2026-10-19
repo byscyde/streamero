@@ -14,18 +14,20 @@ enum DeepLink: Equatable {
 @MainActor
 @Observable
 final class AppModel {
-    enum Phase: Equatable { case launching, onboarding, signedOut, signedIn }
+    enum Phase: Equatable { case launching, signedOut, signedIn }
 
     static private(set) var shared: AppModel?
 
     private(set) var phase: Phase = .launching
     private(set) var user: User?
     private(set) var api: APIClient?
-    var serverURL: URL? { api?.baseURL }
     var pendingDeepLink: DeepLink?
     var isPlayerExpanded = false
     var toast: Toast?
     var selectedTab: AppTab = .home
+    /// Side menu with profile, settings and history (opened from the avatar).
+    var isMenuOpen = false
+    var showCreatePlaylist = false
     /// Tracks waiting for the "Add to playlist" sheet.
     var addToPlaylist: AddToPlaylistRequest?
 
@@ -35,6 +37,7 @@ final class AppModel {
     let events: EventReporter
     let player: AudioPlayer
     let downloads: DownloadManager
+    let sync: SyncCenter
     let container: ModelContainer
 
     struct Toast: Equatable, Identifiable {
@@ -45,8 +48,8 @@ final class AppModel {
 
     init() {
         if ProcessInfo.processInfo.arguments.contains("--uitesting-reset") {
-            ServerConfig.current = nil
             JSONFileStore.removeAll()
+            KeychainTokenStore(service: AppModel.keychainService).save(nil)
         }
         let container: ModelContainer
         do {
@@ -62,6 +65,7 @@ final class AppModel {
         events = EventReporter()
         downloads = DownloadManager(container: container, settings: settings)
         player = AudioPlayer(settings: settings, network: network, events: events, library: library)
+        sync = SyncCenter(library: library, events: events, downloads: downloads, network: network, player: player)
         network.onReconnect = { [weak self] in
             guard let self else { return }
             Task {
@@ -72,11 +76,13 @@ final class AppModel {
             }
         }
         AppModel.shared = self
-        if let url = ServerConfig.current { configure(server: url) }
+        configure(server: ServerConfig.url)
     }
 
+    static let keychainService = "com.streamero.session"
+
     private func configure(server url: URL) {
-        let store = KeychainTokenStore(service: "com.streamero.session.\(url.host ?? "server")")
+        let store = KeychainTokenStore(service: AppModel.keychainService)
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let client = APIClient(baseURL: url, tokenStore: store, userAgent: "STREAMERO-iOS/\(version) (\(UIDevice.current.model))")
         api = client
@@ -85,12 +91,13 @@ final class AppModel {
         events.attach(api: client)
         downloads.attach(api: client)
         player.attach(api: client, downloads: downloads)
+        sync.attach(api: client)
         Task { await client.auth.setOnExpired { Task { @MainActor in AppModel.shared?.sessionExpired() } } }
     }
 
-    /// Launch: decide between onboarding, sign-in and the main app. Works offline with cached state.
+    /// Launch: sign-in screen or the main app. Works offline with cached state.
     func bootstrap() async {
-        guard let api else { phase = .onboarding; return }
+        guard let api else { phase = .signedOut; return }
         guard await api.auth.isSignedIn else { phase = .signedOut; return }
         phase = .signedIn
         await loadAccount()
@@ -106,26 +113,26 @@ final class AppModel {
         await events.flush()
         await player.activateRestoredState()
         await downloads.validateWithServer()
+        sync.start()
     }
 
-    /// Verifies the URL points at a STREAMERO server before saving it.
-    func connect(to url: URL) async throws {
-        var req = URLRequest(url: url.appendingPathComponent("healthz"), timeoutInterval: 10)
-        req.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, response) = try await URLSession.shared.data(for: req)
-        guard (response as? HTTPURLResponse)?.statusCode == 200, String(data: data, encoding: .utf8)?.contains("ok") == true else {
-            throw APIError.server(status: 0, code: "not_streamero", message: "That address doesn't look like a STREAMERO server.", details: nil)
-        }
-        ServerConfig.current = url
-        configure(server: url)
-        phase = await api?.auth.isSignedIn == true ? .signedIn : .signedOut
+    /// One navigation stack per tab, so the side menu can push screens and re-tapping a tab pops to root.
+    var paths: [AppTab: NavigationPath] = [:]
+
+    func pathBinding(_ tab: AppTab) -> Binding<NavigationPath> {
+        Binding(get: { self.paths[tab] ?? NavigationPath() }, set: { self.paths[tab] = $0 })
     }
 
-    func changeServer() {
-        Task { await signOut() }
-        ServerConfig.current = nil
-        api = nil
-        phase = .onboarding
+    func popToRoot(_ tab: AppTab) { paths[tab] = NavigationPath() }
+
+    func navigate(to route: Route) {
+        var path = paths[selectedTab] ?? NavigationPath()
+        path.append(route)
+        paths[selectedTab] = path
+    }
+
+    var avatarURL: URL? {
+        user?.avatarUrl.flatMap { URL(string: $0, relativeTo: ServerConfig.url)?.absoluteURL }
     }
 
     func didSignIn(_ session: Session) async {
@@ -139,15 +146,17 @@ final class AppModel {
     }
 
     func signOut() async {
+        sync.reset()
         player.stop()
         await api?.logout()
         library.reset()
         user = nil
-        phase = api == nil ? .onboarding : .signedOut
+        phase = .signedOut
     }
 
     func sessionExpired() {
         guard phase == .signedIn else { return }
+        sync.reset()
         player.pause()
         user = nil
         phase = .signedOut
@@ -185,24 +194,30 @@ struct AddToPlaylistRequest: Identifiable {
 }
 
 enum AppTab: String, CaseIterable, Identifiable {
-    case home, search, library, videos, profile
+    case home, search, library, create
     var id: String { rawValue }
     var title: String {
         switch self {
         case .home: "Home"
         case .search: "Search"
-        case .library: "Library"
-        case .videos: "Videos"
-        case .profile: "Profile"
+        case .library: "Your Library"
+        case .create: "Create"
         }
     }
     var symbol: String {
         switch self {
+        case .home: "house"
+        case .search: "magnifyingglass"
+        case .library: "books.vertical"
+        case .create: "plus"
+        }
+    }
+    var selectedSymbol: String {
+        switch self {
         case .home: "house.fill"
         case .search: "magnifyingglass"
-        case .library: "square.stack.fill"
-        case .videos: "play.rectangle.fill"
-        case .profile: "person.crop.circle.fill"
+        case .library: "books.vertical.fill"
+        case .create: "plus"
         }
     }
 }

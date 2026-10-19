@@ -2869,6 +2869,25 @@
         ]
       }
     },
+    "/v1/sync/state": {
+      "get": {
+        "operationId": "SyncController_state",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "sync"
+        ]
+      }
+    },
     "/v1/admin/overview": {
       "get": {
         "operationId": "AdminController_overview",

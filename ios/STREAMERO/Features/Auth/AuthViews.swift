@@ -4,9 +4,9 @@ import StreameroCore
 import SwiftUI
 
 struct AuthFlowView: View {
-    enum Mode { case login, register, forgot }
+    enum Mode { case welcome, login, register, forgot }
     @Environment(AppModel.self) private var model
-    @State private var mode: Mode = .login
+    @State private var mode: Mode = .welcome
     @State private var email = ""
     @State private var password = ""
     @State private var name = ""
@@ -16,100 +16,155 @@ struct AuthFlowView: View {
     @State private var appleNonce = ""
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: Theme.Spacing.l) {
-                BrandMark(size: 44).padding(.top, Theme.Spacing.xxl)
-                Text(title).font(Theme.Typography.title).padding(.top, Theme.Spacing.m)
+        Group {
+            if mode == .welcome { welcome.transition(.opacity) } else { form.transition(.move(edge: .trailing)) }
+        }
+        .animation(Theme.Motion.standard, value: mode)
+        .streameroScreen()
+    }
 
-                VStack(spacing: Theme.Spacing.m) {
+    // MARK: Welcome
+
+    private var welcome: some View {
+        ZStack {
+            LinearGradient(colors: [Color(hex: 0x2A2A2A), Theme.Palette.background, .black], startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
+            VStack(spacing: Theme.Spacing.l) {
+                Spacer()
+                BrandMark(size: 56, showsName: false)
+                Text("Your music.\nYour videos.\nAll in one place.")
+                    .font(.system(size: 30, weight: .bold))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.white)
+                    .padding(.bottom, Theme.Spacing.xl)
+                Button("Sign up free") { switchTo(.register) }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .accessibilityIdentifier("signUpButton")
+                appleButton
+                Button("Log in") { switchTo(.login) }
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .accessibilityIdentifier("logInButton")
+                if let message {
+                    Text(message).font(Theme.Typography.callout).foregroundStyle(Theme.Palette.danger).multilineTextAlignment(.center)
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.xxl)
+            .padding(.bottom, Theme.Spacing.xl)
+            .frame(maxWidth: 480)
+        }
+    }
+
+    private var appleButton: some View {
+        SignInWithAppleButton(.continue) { request in
+            appleNonce = randomNonce()
+            request.requestedScopes = [.fullName, .email]
+            request.nonce = sha256(appleNonce)
+        } onCompletion: { result in
+            handleApple(result)
+        }
+        .signInWithAppleButtonStyle(.whiteOutline)
+        .frame(height: 48)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(Theme.Palette.textTertiary, lineWidth: 1))
+    }
+
+    // MARK: Forms
+
+    private var form: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Spacing.l) {
+                Button { switchTo(mode == .forgot ? .login : .welcome) } label: {
+                    Image(systemName: "chevron.left").font(.system(size: 20, weight: .semibold)).foregroundStyle(.white)
+                        .frame(width: 44, height: 44, alignment: .leading)
+                }
+                .accessibilityLabel("Back")
+                Text(title).font(.system(size: 28, weight: .bold)).padding(.bottom, Theme.Spacing.s)
+
+                if mode == .register {
+                    label("What's your name?")
+                    field("Name", text: $name, content: .name)
+                }
+                label(mode == .login ? "Email" : "What's your email?")
+                field("Email", text: $email, content: .emailAddress, keyboard: .emailAddress)
+                if mode != .forgot {
+                    label(mode == .register ? "Create a password" : "Password")
+                    SecureField("", text: $password)
+                        .textContentType(mode == .register ? .newPassword : .password)
+                        .padding(Theme.Spacing.m)
+                        .background(Theme.Palette.surfaceHighlight, in: RoundedRectangle(cornerRadius: Theme.Radius.s))
+                        .accessibilityIdentifier("passwordField")
                     if mode == .register {
-                        field("Name", text: $name, content: .name)
-                    }
-                    field("Email", text: $email, content: .emailAddress, keyboard: .emailAddress)
-                    if mode != .forgot {
-                        SecureField("Password", text: $password)
-                            .textContentType(mode == .register ? .newPassword : .password)
-                            .padding(Theme.Spacing.m)
-                            .background(Theme.Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: Theme.Radius.m))
-                            .accessibilityIdentifier("passwordField")
-                        if mode == .register {
-                            Text("At least 10 characters, with letters and numbers.")
-                                .font(Theme.Typography.caption).foregroundStyle(Theme.Palette.textTertiary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
+                        Text("Use at least 10 characters, with letters and numbers.")
+                            .font(Theme.Typography.caption).foregroundStyle(Theme.Palette.textSecondary)
                     }
                 }
 
                 if let message {
                     Text(message)
                         .font(Theme.Typography.callout)
-                        .foregroundStyle(isError ? Theme.Palette.danger : Theme.Palette.success)
-                        .multilineTextAlignment(.center)
+                        .foregroundStyle(isError ? Theme.Palette.danger : Theme.Palette.accent)
                 }
 
-                Button(action: submit) {
-                    if busy { ProgressView().tint(.white) } else { Text(primaryTitle) }
-                }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(busy || !valid)
-                .accessibilityIdentifier("authSubmit")
-
-                if mode != .forgot {
-                    SignInWithAppleButton(.signIn) { request in
-                        appleNonce = randomNonce()
-                        request.requestedScopes = [.fullName, .email]
-                        request.nonce = sha256(appleNonce)
-                    } onCompletion: { result in
-                        handleApple(result)
+                HStack {
+                    Spacer()
+                    Button(action: submit) {
+                        if busy { ProgressView().tint(.black) } else { Text(primaryTitle) }
                     }
-                    .signInWithAppleButtonStyle(.white)
-                    .frame(height: 50)
-                    .clipShape(Capsule())
+                    .buttonStyle(PrimaryButtonStyle(fullWidth: false))
+                    .disabled(busy || !valid)
+                    .accessibilityIdentifier("authSubmit")
+                    Spacer()
                 }
+                .padding(.top, Theme.Spacing.l)
 
-                VStack(spacing: Theme.Spacing.s) {
+                HStack {
+                    Spacer()
                     switch mode {
                     case .login:
-                        Button("Forgot password?") { switchTo(.forgot) }
-                        Button("New here? Create an account") { switchTo(.register) }
+                        Button("Forgot your password?") { switchTo(.forgot) }
                     case .register:
-                        Button("Already have an account? Sign in") { switchTo(.login) }
-                    case .forgot:
-                        Button("Back to sign in") { switchTo(.login) }
+                        Button("Already have an account? Log in") { switchTo(.login) }
+                    default:
+                        EmptyView()
                     }
-                    Button("Change server (\(model.serverURL?.host ?? "none"))") { model.changeServer() }
-                        .foregroundStyle(Theme.Palette.textTertiary)
+                    Spacer()
                 }
-                .font(Theme.Typography.callout)
-                .padding(.top, Theme.Spacing.s)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
             }
             .padding(.horizontal, Theme.Spacing.screen)
             .frame(maxWidth: 520)
             .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.interactively)
-        .streameroScreen()
+    }
+
+    private func label(_ text: String) -> some View {
+        Text(text).font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
     }
 
     private var title: String {
         switch mode {
-        case .login: "Welcome back"
-        case .register: "Create your account"
+        case .welcome, .login: "Log in"
+        case .register: "Create account"
         case .forgot: "Reset your password"
         }
     }
 
     private var primaryTitle: String {
         switch mode {
-        case .login: "Sign in"
+        case .welcome, .login: "Log in"
         case .register: "Create account"
-        case .forgot: "Send reset link"
+        case .forgot: "Send link"
         }
     }
 
     private var valid: Bool {
         let okEmail = email.contains("@") && email.contains(".")
         switch mode {
+        case .welcome: return false
         case .login: return okEmail && !password.isEmpty
         case .register: return okEmail && password.count >= 10 && !name.trimmingCharacters(in: .whitespaces).isEmpty
         case .forgot: return okEmail
@@ -117,13 +172,14 @@ struct AuthFlowView: View {
     }
 
     private func field(_ label: String, text: Binding<String>, content: UITextContentType, keyboard: UIKeyboardType = .default) -> some View {
-        TextField(label, text: text)
+        TextField("", text: text)
+            .accessibilityLabel(label)
             .textContentType(content)
             .keyboardType(keyboard)
             .textInputAutocapitalization(content == .name ? .words : .never)
             .autocorrectionDisabled()
             .padding(Theme.Spacing.m)
-            .background(Theme.Palette.surfaceRaised, in: RoundedRectangle(cornerRadius: Theme.Radius.m))
+            .background(Theme.Palette.surfaceHighlight, in: RoundedRectangle(cornerRadius: Theme.Radius.s))
             .accessibilityIdentifier(label.lowercased() + "Field")
     }
 
@@ -146,6 +202,8 @@ struct AuthFlowView: View {
                     let s = try await api.register(email: email, password: password, displayName: name)
                     await model.didSignIn(s)
                     model.show("Check your email to verify your account", symbol: "envelope.badge")
+                case .welcome:
+                    return
                 case .forgot:
                     try await api.forgotPassword(email: email)
                     isError = false

@@ -16,6 +16,8 @@ enum Route: Hashable {
     case recentlyPlayed
     case likedVideos
     case settings
+    case profile
+    case videos
     case youtube
 }
 
@@ -37,6 +39,8 @@ extension View {
             case .recentlyPlayed: RecentlyPlayedView()
             case .likedVideos: LikedVideosView()
             case .settings: SettingsView()
+            case .profile: ProfileView()
+            case .videos: VideosView()
             case .youtube: YouTubeDiscoveryView()
             }
         }

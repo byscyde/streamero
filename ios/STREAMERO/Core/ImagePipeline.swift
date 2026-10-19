@@ -87,4 +87,12 @@ extension UIImage {
         ctx.draw(cg, in: CGRect(x: 0, y: 0, width: 1, height: 1))
         return UIColor(red: CGFloat(pixel[0]) / 255, green: CGFloat(pixel[1]) / 255, blue: CGFloat(pixel[2]) / 255, alpha: 1)
     }
+
+    /// Same hue, scaled towards black; keeps white text legible on bright artwork colours.
+    func darkened(_ amount: CGFloat) -> UIColor {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        getRed(&r, green: &g, blue: &b, alpha: &a)
+        let k = max(0, 1 - amount)
+        return UIColor(red: r * k, green: g * k, blue: b * k, alpha: a)
+    }
 }

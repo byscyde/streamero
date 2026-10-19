@@ -71,7 +71,7 @@ else
       *) MODE=lan ;;
     esac
     if [ "$MODE" != "lan" ]; then
-      DOMAIN="$(ask 'Domena (DNS A zapis mora pokazivati na ovaj server), npr. music.mojadomena.hr' '')"
+      DOMAIN="$(ask 'Domena (DNS A zapis mora pokazivati na ovaj server; iPhone aplikacija koristi app.streamero.net)' 'app.streamero.net')"
       [ -n "$DOMAIN" ] || die "Domena je obavezna za ovu opciju"
     fi
   fi

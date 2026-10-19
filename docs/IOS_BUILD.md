@@ -13,7 +13,7 @@ Configuration (build settings in `project.yml`, overridable on the command line)
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `STREAMERO_BUNDLE_ID` | `com.example.streamero` | Bundle identifier (use your own reverse-DNS id) |
-| `STREAMERO_DEFAULT_SERVER_URL` | empty | Pre-filled server address on first launch |
+| `STREAMERO_SERVER_URL` | `https://app.streamero.net` | The fixed service address compiled into the app (https only; users never see or change it) |
 | `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` | `1.0.0` / `1` | Version (SemVer) and build number (increment every upload) |
 | `DEVELOPMENT_TEAM` | empty | Your Apple team id for signed builds |
 
@@ -21,18 +21,18 @@ Configuration (build settings in `project.yml`, overridable on the command line)
 
 ```bash
 ./scripts/build-unsigned-ipa.sh                      # → ios/build/ipa/STREAMERO-1.0.0-1-unsigned.ipa (+ .sha256)
-STREAMERO_DEFAULT_SERVER_URL=https://music.example.com ./scripts/build-unsigned-ipa.sh
+STREAMERO_SERVER_URL=https://staging.example.com ./scripts/build-unsigned-ipa.sh   # e.g. a staging build
 ```
 
 No Mac? Every push runs the **iOS** GitHub Actions workflow, which uploads the IPA as the
-`STREAMERO-unsigned-ipa` artifact. *Run workflow* (workflow_dispatch) accepts a default server URL. To publish a GitHub Release with
+`STREAMERO-unsigned-ipa` artifact. *Run workflow* (workflow_dispatch) accepts a different server URL for test builds. To publish a GitHub Release with
 `STREAMERO.ipa`, change the `VERSION` file (e.g. `1.0.1`) and push — or push a tag `vX.Y.Z`.
 
 Installing with **Feather**:
 1. Add your signing certificate (`.p12` + password) and its `.mobileprovision` in Feather.
 2. Import `STREAMERO-…-unsigned.ipa`, sign it with that certificate, install, and trust the profile if iOS asks
    (Settings › General › VPN & Device Management).
-3. Open STREAMERO and enter your server address.
+3. Open STREAMERO and sign in; it connects to the built-in server automatically.
 
 Notes:
 - The unsigned IPA is **not installable by itself**; the sideloading tool must sign it.

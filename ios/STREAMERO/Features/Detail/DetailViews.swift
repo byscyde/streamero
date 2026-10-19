@@ -53,35 +53,57 @@ struct ArtistView: View {
                 }
                 .padding(.bottom, Theme.Spacing.xxl)
             }
+            .ignoresSafeArea(edges: .top)
         }
         .streameroScreen()
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
 
     private func hero(_ page: ArtistPage) -> some View {
         let followed = library.contains(.artist, id)
-        return VStack(spacing: Theme.Spacing.l) {
-            ArtworkView(url: page.artist.artworkUrl, size: 200, placeholderSymbol: "music.mic", circular: true)
-                .shadow(color: Theme.Shadow.artworkColor, radius: Theme.Shadow.artworkRadius, y: 10)
-            Text(page.artist.name).font(Theme.Typography.display).multilineTextAlignment(.center)
-            if let followers = page.artist.followerCount, followers > 0 {
-                Text(Format.count(followers, "follower")).font(Theme.Typography.caption).foregroundStyle(Theme.Palette.textSecondary)
-            }
-            HStack(spacing: Theme.Spacing.l) {
-                Button(followed ? "Following" : "Follow") {
-                    library.toggle(.artist, id)
-                    Haptics.toggle()
+        let context = PlaybackContext(type: "artist", id: id, title: page.artist.name)
+        return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            GeometryReader { geo in
+                let minY = geo.frame(in: .global).minY
+                ZStack(alignment: .bottomLeading) {
+                    ArtworkView(url: page.artist.artworkUrl, size: geo.size.width, cornerRadius: 0, placeholderSymbol: "music.mic")
+                        .frame(width: geo.size.width, height: 340 + max(0, minY))
+                        .clipped()
+                    Theme.Gradients.scrim
+                    Text(page.artist.name)
+                        .font(.system(size: 44, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.5)
+                        .padding(.horizontal, Theme.Spacing.screen)
+                        .padding(.bottom, Theme.Spacing.m)
                 }
-                .buttonStyle(SecondaryButtonStyle())
-                .accessibilityValue(followed ? "Following" : "Not following")
-                PlayCircleButton { player.play(tracks: page.topTracks, context: PlaybackContext(type: "artist", id: id, title: page.artist.name)) }
-                IconButton(systemName: "shuffle", label: "Shuffle") {
-                    player.play(tracks: page.topTracks, context: PlaybackContext(type: "artist", id: id, title: page.artist.name), shuffle: true)
+                .offset(y: -max(0, minY)) // stretchy header on pull-down
+            }
+            .frame(height: 340)
+            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                if let followers = page.artist.followerCount, followers > 0 {
+                    Text(Format.count(followers, "follower")).font(.system(size: 13)).foregroundStyle(Theme.Palette.textSecondary)
+                }
+                HStack(spacing: Theme.Spacing.l) {
+                    Button(followed ? "Following" : "Follow") {
+                        library.toggle(.artist, id)
+                        Haptics.toggle()
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .accessibilityValue(followed ? "Following" : "Not following")
+                    Spacer()
+                    IconButton(systemName: "shuffle", label: "Shuffle", size: 24, tint: player.queue.shuffle ? Theme.Palette.accent : Theme.Palette.textSecondary) {
+                        player.play(tracks: page.topTracks, context: context, shuffle: true)
+                    }
+                    PlayCircleButton(isPlaying: player.isPlaying && player.queue.context?.id == id) {
+                        if player.queue.context?.id == id { player.togglePlayPause() } else { player.play(tracks: page.topTracks, context: context) }
+                    }
                 }
             }
+            .padding(.horizontal, Theme.Spacing.screen)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, Theme.Spacing.l)
     }
 
     @ViewBuilder private func releaseShelf(_ title: String, _ albums: [Album]) -> some View {
@@ -99,7 +121,7 @@ struct AlbumView: View {
     @Environment(AudioPlayer.self) private var player
     @Environment(LibraryStore.self) private var library
     @Environment(DownloadManager.self) private var downloads
-    @State private var tint: Color = Theme.Palette.violet
+    @State private var tint: Color = Theme.Palette.surfaceHighlight
 
     var body: some View {
         AsyncContent(load: { try await app.api!.album(id) }) { (page: AlbumPage) in
@@ -113,7 +135,7 @@ struct AlbumView: View {
                                 Text("Disc \(t.discNumber ?? 1)").font(Theme.Typography.caption).foregroundStyle(Theme.Palette.textTertiary)
                                     .padding(.horizontal, Theme.Spacing.screen).padding(.top, Theme.Spacing.m)
                             }
-                            TrackRow(track: t, index: t.trackNumber ?? i + 1, showArtwork: false, subtitle: t.artist.id == page.album.artist.id ? Format.time(t.duration) : "\(t.artist.name) · \(Format.time(t.duration))") {
+                            TrackRow(track: t, index: t.trackNumber ?? i + 1, showArtwork: false, subtitle: t.artist.name) {
                                 player.play(tracks: page.tracks, startAt: i, context: PlaybackContext(type: "album", id: id, title: page.album.title))
                             }
                         }
@@ -142,41 +164,56 @@ struct AlbumView: View {
     private func header(_ page: AlbumPage) -> some View {
         let saved = library.contains(.album, id)
         let a = page.album
-        return VStack(spacing: Theme.Spacing.m) {
-            ArtworkView(url: a.artworkUrl, size: 240, cornerRadius: Theme.Radius.l, placeholderSymbol: "square.stack")
-                .shadow(color: Theme.Shadow.artworkColor, radius: Theme.Shadow.artworkRadius, y: 12)
-            Text(a.title).font(Theme.Typography.title).multilineTextAlignment(.center)
-            NavigationLink(value: Route.artist(a.artist.id)) { Text(a.artist.name).font(Theme.Typography.headline).foregroundStyle(Theme.Palette.accent) }
+        let context = PlaybackContext(type: "album", id: id, title: a.title)
+        return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+            ArtworkView(url: a.artworkUrl, size: 240, placeholderSymbol: "square.stack")
+                .shadow(color: .black.opacity(0.5), radius: 20, y: 10)
+                .frame(maxWidth: .infinity)
+                .padding(.top, Theme.Spacing.l)
+                .padding(.bottom, Theme.Spacing.s)
+            Text(a.title).font(.system(size: 24, weight: .bold)).lineLimit(3)
+            NavigationLink(value: Route.artist(a.artist.id)) {
+                HStack(spacing: Theme.Spacing.s) {
+                    Text(a.artist.name).font(.system(size: 14, weight: .bold)).foregroundStyle(Theme.Palette.textPrimary)
+                }
+            }
+            .buttonStyle(.plain)
             HStack(spacing: 6) {
-                Text([a.albumType.capitalized, a.releaseYear].compactMap { $0 }.joined(separator: " · "))
+                Text([a.albumType == "single" ? "Single" : a.albumType.capitalized, a.releaseYear].compactMap { $0 }.joined(separator: " • "))
                 if a.explicit { ExplicitBadge() }
                 if page.tracks.contains(where: \.supportsLossless) { QualityBadge(text: "Lossless", lossless: true) }
             }
-            .font(Theme.Typography.caption)
+            .font(.system(size: 13))
             .foregroundStyle(Theme.Palette.textSecondary)
-            HStack(spacing: Theme.Spacing.xl) {
-                IconButton(systemName: saved ? "checkmark.circle.fill" : "plus.circle", label: saved ? "Remove from library" : "Save to library", tint: saved ? Theme.Palette.turquoise : Theme.Palette.textPrimary) {
+            HStack(spacing: Theme.Spacing.l) {
+                IconButton(systemName: saved ? "checkmark.circle.fill" : "plus.circle", label: saved ? "Remove from Your Library" : "Save to Your Library", size: 26, tint: saved ? Theme.Palette.accent : Theme.Palette.textSecondary) {
                     library.toggle(.album, id)
                     Haptics.toggle()
+                    app.show(saved ? "Removed from Your Library" : "Added to Your Library", symbol: saved ? "minus.circle" : "checkmark.circle")
                 }
-                IconButton(systemName: "arrow.down.circle", label: "Download album") {
+                IconButton(systemName: "arrow.down.circle", label: "Download album", size: 26, tint: Theme.Palette.textSecondary) {
                     Task { await downloads.download(tracks: page.tracks) }
                     app.show("Downloading \(a.title)", symbol: "arrow.down.circle")
                 }
-                PlayCircleButton { player.play(tracks: page.tracks, context: PlaybackContext(type: "album", id: id, title: a.title)) }
-                IconButton(systemName: "shuffle", label: "Shuffle") { player.play(tracks: page.tracks, context: PlaybackContext(type: "album", id: id, title: a.title), shuffle: true) }
                 Menu {
                     Button { player.playNext(page.tracks) } label: { Label("Play next", systemImage: "text.line.first.and.arrowtriangle.forward") }
                     Button { player.addToQueue(page.tracks) } label: { Label("Add to queue", systemImage: "text.append") }
                     Button { app.addToPlaylist = AddToPlaylistRequest(tracks: page.tracks) } label: { Label("Add to playlist…", systemImage: "text.badge.plus") }
+                    NavigationLink(value: Route.artist(a.artist.id)) { Label("Go to artist", systemImage: "music.mic") }
                 } label: {
-                    Image(systemName: "ellipsis.circle").font(.system(size: 22, weight: .semibold)).frame(width: 44, height: 44)
+                    Image(systemName: "ellipsis").font(.system(size: 20, weight: .bold)).foregroundStyle(Theme.Palette.textSecondary).frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("More")
+                Spacer()
+                IconButton(systemName: "shuffle", label: "Shuffle", size: 24, tint: player.queue.shuffle ? Theme.Palette.accent : Theme.Palette.textSecondary) {
+                    player.play(tracks: page.tracks, context: context, shuffle: true)
+                }
+                PlayCircleButton(isPlaying: player.isPlaying && player.queue.context?.id == id) {
+                    if player.queue.context?.id == id { player.togglePlayPause() } else { player.play(tracks: page.tracks, context: context) }
+                }
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, Theme.Spacing.l)
+        .padding(.horizontal, Theme.Spacing.screen)
     }
 
     private func footer(_ page: AlbumPage) -> String {
@@ -226,6 +263,7 @@ final class PlaylistModel {
 struct PlaylistView: View {
     let id: String
     @Environment(AppModel.self) private var app
+    @Environment(SyncCenter.self) private var sync
     @Environment(AudioPlayer.self) private var player
     @Environment(LibraryStore.self) private var library
     @Environment(DownloadManager.self) private var downloads
@@ -246,7 +284,8 @@ struct PlaylistView: View {
         }
         .streameroScreen()
         .navigationBarTitleDisplayMode(.inline)
-        .task { await model.load(app.api, id: id) }
+        // Collaborators' edits arrive through the 30 s sync.
+        .task(id: sync.libraryRevision &+ sync.catalogRevision) { await model.load(app.api, id: id) }
         .refreshable { await model.load(app.api, id: id) }
     }
 
@@ -255,11 +294,13 @@ struct PlaylistView: View {
         let p = page.playlist
         return List {
             Section {
-                CollectionHeader(title: p.title, subtitle: [p.description, "\(p.isEditorial ? "STREAMERO" : (p.owner?.displayName ?? "")) · \(Format.count(p.itemCount, "song")) · \(Format.longDuration(ms: p.durationMs))"].compactMap { $0 }.joined(separator: "\n"),
+                CollectionHeader(title: p.title, subtitle: [p.description, "\(p.isEditorial ? "STREAMERO" : (p.owner?.displayName ?? "")) • \(Format.count(p.itemCount, "song")), \(Format.longDuration(ms: p.durationMs))"].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "\n"),
                                  artwork: p.artworkUrl, mosaic: p.mosaicUrls,
                                  onPlay: { player.play(tracks: tracks, context: PlaybackContext(type: "playlist", id: p.id, title: p.title)) },
                                  onShuffle: { player.play(tracks: tracks, context: PlaybackContext(type: "playlist", id: p.id, title: p.title), shuffle: true) },
-                                 onDownload: { Task { await downloads.download(tracks: tracks) }; app.show("Downloading \(p.title)", symbol: "arrow.down.circle") })
+                                 onDownload: { Task { await downloads.download(tracks: tracks) }; app.show("Downloading \(p.title)", symbol: "arrow.down.circle") },
+                                 saved: p.isOwner ? nil : library.contains(.playlist, p.id),
+                                 onSave: p.isOwner ? nil : { library.toggle(.playlist, p.id); Haptics.toggle() })
             }
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)

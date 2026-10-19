@@ -4,11 +4,13 @@ import XCTest
 
 @MainActor
 final class AppLogicTests: XCTestCase {
-    func testServerAddressNormalisation() {
-        XCTAssertEqual(ServerConfig.normalise("music.example.com")?.absoluteString, "https://music.example.com")
-        XCTAssertEqual(ServerConfig.normalise(" http://192.168.1.10:8080/ ")?.absoluteString, "http://192.168.1.10:8080")
-        XCTAssertNil(ServerConfig.normalise(""))
-        XCTAssertNil(ServerConfig.normalise("ftp://x.com"))
+    func testServerIsFixedAndHttpsOnly() {
+        XCTAssertEqual(ServerConfig.fallback.absoluteString, "https://app.streamero.net")
+        XCTAssertEqual(ServerConfig.url.absoluteString, "https://app.streamero.net")
+        XCTAssertEqual(ServerConfig.resolve(" https://staging.example.com ").absoluteString, "https://staging.example.com")
+        XCTAssertEqual(ServerConfig.resolve("http://insecure.example.com"), ServerConfig.fallback)
+        XCTAssertEqual(ServerConfig.resolve("$(STREAMERO_SERVER_URL)"), ServerConfig.fallback)
+        XCTAssertEqual(ServerConfig.resolve(nil), ServerConfig.fallback)
     }
 
     func testArtworkVariantSelection() {

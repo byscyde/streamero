@@ -8,38 +8,48 @@ struct MiniPlayerView: View {
     @Environment(AppModel.self) private var app
     @Environment(AudioPlayer.self) private var player
     @Environment(LibraryStore.self) private var library
+    @State private var tint: Color = Theme.Palette.surfaceHighlight
 
     var body: some View {
         if let track = player.current {
-            HStack(spacing: Theme.Spacing.m) {
-                ArtworkView(url: track.artworkUrl, size: 44, cornerRadius: Theme.Radius.s)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(track.title).font(Theme.Typography.callout.weight(.semibold)).lineLimit(1)
-                    Text(player.errorMessage ?? track.artist.name).font(Theme.Typography.caption).foregroundStyle(player.errorMessage == nil ? Theme.Palette.textSecondary : Theme.Palette.warning).lineLimit(1)
+            HStack(spacing: Theme.Spacing.s) {
+                ArtworkView(url: track.artworkUrl, size: 40, cornerRadius: Theme.Radius.s)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(track.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
+                    Text(player.errorMessage ?? track.artist.name).font(.system(size: 13)).foregroundStyle(player.errorMessage == nil ? Color.white.opacity(0.7) : Theme.Palette.warning).lineLimit(1)
                 }
                 Spacer(minLength: 0)
+                RoutePicker().frame(width: 36, height: 44).accessibilityLabel("Audio output")
                 if player.queue.context?.type != "video" {
-                    IconButton(systemName: library.contains(.track, track.id) ? "heart.fill" : "heart", label: library.contains(.track, track.id) ? "Unlike" : "Like",
-                               size: 18, tint: library.contains(.track, track.id) ? Theme.Palette.violet : Theme.Palette.textPrimary) { app.toggleLike(track) }
+                    let liked = library.contains(.track, track.id)
+                    IconButton(systemName: liked ? "checkmark.circle.fill" : "plus.circle", label: liked ? "Remove from Liked Songs" : "Add to Liked Songs",
+                               size: 22, tint: liked ? Theme.Palette.accent : .white) { app.toggleLike(track) }
+                        .symbolEffect(.bounce, value: liked)
                 }
                 if player.isBuffering && player.isPlaying {
-                    ProgressView().frame(width: 44, height: 44)
+                    ProgressView().tint(.white).frame(width: 44, height: 44)
                 } else {
-                    IconButton(systemName: player.isPlaying ? "pause.fill" : "play.fill", label: player.isPlaying ? "Pause" : "Play", size: 20) { player.togglePlayPause() }
+                    IconButton(systemName: player.isPlaying ? "pause.fill" : "play.fill", label: player.isPlaying ? "Pause" : "Play", size: 22, tint: .white) { player.togglePlayPause() }
                 }
-                IconButton(systemName: "forward.fill", label: "Next", size: 18) { player.next() }
             }
             .padding(.leading, 8)
-            .padding(.trailing, 4)
+            .padding(.trailing, 2)
             .frame(height: Theme.Size.miniPlayerHeight)
-            .glass(cornerRadius: Theme.Radius.l)
+            .background(
+                ZStack { Color.black; tint.opacity(0.6) }
+                    .animation(.easeInOut(duration: 0.6), value: tint),
+                in: RoundedRectangle(cornerRadius: Theme.Radius.m, style: .continuous)
+            )
             .overlay(alignment: .bottom) {
                 GeometryReader { geo in
-                    Capsule().fill(Theme.Gradients.brandHorizontal)
-                        .frame(width: player.duration > 0 ? geo.size.width * player.position / player.duration : 0, height: 2)
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.25))
+                        Capsule().fill(Color.white)
+                            .frame(width: player.duration > 0 ? geo.size.width * player.position / player.duration : 0)
+                    }
                 }
                 .frame(height: 2)
-                .padding(.horizontal, Theme.Spacing.m)
+                .padding(.horizontal, Theme.Spacing.s)
             }
             .contentShape(Rectangle())
             .onTapGesture { app.isPlayerExpanded = true }
@@ -48,6 +58,11 @@ struct MiniPlayerView: View {
                 else if v.translation.width < -60 { player.next() }
                 else if v.translation.width > 60 { player.previous() }
             })
+            .task(id: track.artworkUrl) {
+                if let u = artworkURL(track.artworkUrl, points: 50), let img = await ImagePipeline.shared.image(for: u, pixelSize: 50), let c = img.averageColor {
+                    tint = Color(c)
+                }
+            }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Now playing: \(track.title) by \(track.artist.name)")
             .accessibilityAction(named: "Open player") { app.isPlayerExpanded = true }
@@ -64,7 +79,7 @@ struct NowPlayingView: View {
     @Environment(SettingsStore.self) private var settings
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var tint: Color = Theme.Palette.violet
+    @State private var tint: Color = Theme.Palette.surfaceHighlight
     @State private var scrub: Double?
     @State private var panel: Panel?
     @State private var dragOffset: CGFloat = 0
@@ -75,7 +90,7 @@ struct NowPlayingView: View {
         GeometryReader { geo in
             let artSize = min(geo.size.width - 48, geo.size.height * 0.42)
             ZStack {
-                LinearGradient(colors: [tint.opacity(0.85), tint.opacity(0.25), Theme.Palette.background], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [tint, tint.opacity(0.55), Color(hex: 0x121212)], startPoint: .top, endPoint: .bottom)
                     .ignoresSafeArea()
                     .animation(.easeInOut(duration: 0.8), value: tint)
                 if let track = player.current {
@@ -147,7 +162,7 @@ struct NowPlayingView: View {
 
     private func artwork(_ track: Track, size: CGFloat) -> some View {
         ArtworkView(url: track.artworkUrl, size: size, cornerRadius: Theme.Radius.l)
-            .shadow(color: .black.opacity(0.5), radius: 30, y: 20)
+            .shadow(color: .black.opacity(0.4), radius: 24, y: 12)
             .scaleEffect(player.isPlaying || reduceMotion ? 1 : 0.86)
             .animation(Theme.Motion.expressive, value: player.isPlaying)
             .id(track.id)
@@ -163,21 +178,21 @@ struct NowPlayingView: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(track.title).font(Theme.Typography.title).lineLimit(1)
+                    Text(track.title).font(.system(size: 22, weight: .bold)).lineLimit(1)
                     if track.explicit { ExplicitBadge() }
                 }
                 Button {
                     dismiss()
                     if !track.artist.id.isEmpty { app.selectedTab = .home }
                 } label: {
-                    Text(track.artist.name).font(Theme.Typography.headline).foregroundStyle(Theme.Palette.textSecondary).lineLimit(1)
+                    Text(track.artist.name).font(.system(size: 16)).foregroundStyle(Theme.Palette.textSecondary).lineLimit(1)
                 }
                 .buttonStyle(.plain)
             }
             Spacer()
             if player.queue.context?.type != "video" {
                 let liked = library.contains(.track, track.id)
-                IconButton(systemName: liked ? "heart.fill" : "heart", label: liked ? "Unlike" : "Like", size: 24, tint: liked ? Theme.Palette.violet : Theme.Palette.textPrimary) { app.toggleLike(track) }
+                IconButton(systemName: liked ? "checkmark.circle.fill" : "plus.circle", label: liked ? "Remove from Liked Songs" : "Add to Liked Songs", size: 26, tint: liked ? Theme.Palette.accent : Theme.Palette.textPrimary) { app.toggleLike(track) }
                     .symbolEffect(.bounce, value: liked)
             }
         }
@@ -187,7 +202,7 @@ struct NowPlayingView: View {
         VStack(spacing: 6) {
             let duration = max(player.duration, 1)
             ZStack(alignment: .leading) {
-                Capsule().fill(Theme.Palette.textPrimary.opacity(0.15)).frame(height: 4)
+                Capsule().fill(Theme.Palette.textPrimary.opacity(0.2)).frame(height: 4)
                 Capsule().fill(Theme.Palette.textPrimary.opacity(0.25)).frame(width: nil, height: 4)
                     .mask(alignment: .leading) { GeometryReader { g in Rectangle().frame(width: g.size.width * min(1, player.bufferedUntil / duration)) } }
                 Slider(value: Binding(get: { scrub ?? player.position }, set: { scrub = $0 }), in: 0...duration) { editing in
@@ -216,15 +231,15 @@ struct NowPlayingView: View {
     private var transport: some View {
         HStack {
             IconButton(systemName: "shuffle", label: player.queue.shuffle ? "Shuffle on" : "Shuffle off", size: 20,
-                       tint: player.queue.shuffle ? Theme.Palette.turquoise : Theme.Palette.textSecondary) { player.setShuffle(!player.queue.shuffle) }
+                       tint: player.queue.shuffle ? Theme.Palette.accent : Theme.Palette.textPrimary) { player.setShuffle(!player.queue.shuffle) }
             Spacer()
-            IconButton(systemName: "backward.fill", label: "Previous", size: 30) { player.previous() }
+            IconButton(systemName: "backward.end.fill", label: "Previous", size: 30) { player.previous() }
             Spacer()
             Button { player.togglePlayPause(); Haptics.tap() } label: {
                 ZStack {
-                    Circle().fill(Theme.Palette.textPrimary).frame(width: 76, height: 76)
-                    if player.isBuffering && player.isPlaying { ProgressView().tint(Theme.Palette.background) } else {
-                        Image(systemName: player.isPlaying ? "pause.fill" : "play.fill").font(.system(size: 30, weight: .bold)).foregroundStyle(Theme.Palette.background)
+                    Circle().fill(Color.white).frame(width: 66, height: 66)
+                    if player.isBuffering && player.isPlaying { ProgressView().tint(.black) } else {
+                        Image(systemName: player.isPlaying ? "pause.fill" : "play.fill").font(.system(size: 28, weight: .bold)).foregroundStyle(.black)
                             .contentTransition(.symbolEffect(.replace))
                     }
                 }
@@ -232,10 +247,10 @@ struct NowPlayingView: View {
             .buttonStyle(.plain)
             .accessibilityLabel(player.isPlaying ? "Pause" : "Play")
             Spacer()
-            IconButton(systemName: "forward.fill", label: "Next", size: 30) { player.next() }
+            IconButton(systemName: "forward.end.fill", label: "Next", size: 30) { player.next() }
             Spacer()
             IconButton(systemName: player.queue.repeatMode == .one ? "repeat.1" : "repeat", label: "Repeat \(player.queue.repeatMode.rawValue)", size: 20,
-                       tint: player.queue.repeatMode == .off ? Theme.Palette.textSecondary : Theme.Palette.turquoise) { player.cycleRepeat() }
+                       tint: player.queue.repeatMode == .off ? Theme.Palette.textPrimary : Theme.Palette.accent) { player.cycleRepeat() }
         }
     }
 
@@ -250,7 +265,7 @@ struct NowPlayingView: View {
                 Button { panel = .sleep } label: {
                     Label(timer.remaining().map { Format.time($0) } ?? "End of track", systemImage: "moon.zzz.fill").font(Theme.Typography.caption)
                 }
-                .foregroundStyle(Theme.Palette.turquoise)
+                .foregroundStyle(Theme.Palette.accent)
                 Spacer()
             }
             IconButton(systemName: "list.bullet", label: "Queue", size: 20) { panel = .queue }
@@ -268,7 +283,7 @@ struct RoutePicker: UIViewRepresentable {
     func makeUIView(context: Context) -> AVRoutePickerView {
         let v = AVRoutePickerView()
         v.tintColor = UIColor.label
-        v.activeTintColor = UIColor(Theme.Palette.turquoise)
+        v.activeTintColor = UIColor(Theme.Palette.accent)
         v.prioritizesVideoDevices = false
         return v
     }
@@ -341,6 +356,7 @@ struct LyricsView: View {
     @State private var attribution: LyricsResponse.Attribution?
     @State private var error: Error?
     @State private var userScrolling = false
+    @State private var tint = Color(hex: 0x535353)
 
     var body: some View {
         NavigationStack {
@@ -358,11 +374,19 @@ struct LyricsView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Theme.Palette.background)
+            .background(tint.ignoresSafeArea())
             .navigationTitle(player.current?.title ?? "Lyrics")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(tint, for: .navigationBar)
         }
+        .environment(\.colorScheme, .dark)
         .task(id: player.current?.id) { await load() }
+        .task(id: player.current?.artworkUrl) {
+            // Lyrics sit on a darkened version of the artwork colour.
+            if let u = artworkURL(player.current?.artworkUrl, points: 50), let img = await ImagePipeline.shared.image(for: u, pixelSize: 50), let c = img.averageColor {
+                withAnimation { tint = Color(c.darkened(0.35)) }
+            }
+        }
     }
 
     private func lyrics(_ t: LyricsTimeline) -> some View {
@@ -372,8 +396,8 @@ struct LyricsView: View {
                 VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                     ForEach(t.lines) { line in
                         Text(line.text.isEmpty ? "♪" : line.text)
-                            .font(.system(.title2, design: .rounded).weight(.bold))
-                            .foregroundStyle(!t.synced || line.id == active ? Theme.Palette.textPrimary : Theme.Palette.textTertiary)
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(lineColour(line, active: active, synced: t.synced))
                             .scaleEffect(line.id == active ? 1.03 : 1, anchor: .leading)
                             .animation(Theme.Motion.quick, value: active)
                             .id(line.id)
@@ -398,6 +422,12 @@ struct LyricsView: View {
                 Task { try? await Task.sleep(for: .seconds(3)); userScrolling = false }
             })
         }
+    }
+
+    private func lineColour(_ line: LyricLine, active: Int?, synced: Bool) -> Color {
+        guard synced, let active else { return .white }
+        if line.id == active { return .white }
+        return line.id < active ? .white.opacity(0.7) : .black.opacity(0.65)
     }
 
     private func load() async {
