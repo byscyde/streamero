@@ -1,9 +1,12 @@
 name: Release
 
-# Push a tag like v1.0.0 (or run manually) to publish a GitHub Release with the unsigned IPA
-# for Feather / AltStore / SideStore / Sideloadly.
+# Publishes a GitHub Release with the unsigned IPA for Feather / AltStore / SideStore / Sideloadly.
+# Triggers: change the VERSION file (e.g. 1.0.1) on a branch, push a tag like v1.0.1, or run manually.
+# The release step creates the v<VERSION> tag itself when it does not exist yet.
 on:
   push:
+    branches: ['**']
+    paths: ['VERSION']
     tags: ['v*']
   workflow_dispatch:
     inputs:
@@ -27,7 +30,9 @@ jobs:
       - name: Version from tag
         id: v
         run: |
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          if [ -n "${{ github.event.inputs.tag }}" ]; then TAG="${{ github.event.inputs.tag }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then TAG="${{ github.ref_name }}"
+          else TAG="v$(tr -d '[:space:]' < VERSION)"; fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           VERSION="${TAG#v}"
           # Marketing version from the tag, build number from the CI run so every build is unique.

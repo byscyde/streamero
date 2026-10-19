@@ -25,8 +25,8 @@ STREAMERO_DEFAULT_SERVER_URL=https://music.example.com ./scripts/build-unsigned-
 ```
 
 No Mac? Every push runs the **iOS** GitHub Actions workflow, which uploads the IPA as the
-`STREAMERO-unsigned-ipa` artifact. *Run workflow* (workflow_dispatch) accepts a default server URL. Pushing a tag
-`vX.Y.Z` also attaches the IPA to a GitHub Release.
+`STREAMERO-unsigned-ipa` artifact. *Run workflow* (workflow_dispatch) accepts a default server URL. To publish a GitHub Release with
+`STREAMERO.ipa`, change the `VERSION` file (e.g. `1.0.1`) and push — or push a tag `vX.Y.Z`.
 
 Installing with **Feather**:
 1. Add your signing certificate (`.p12` + password) and its `.mobileprovision` in Feather.
