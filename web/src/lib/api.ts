@@ -76,6 +76,8 @@ export interface RequestOptions {
   query?: Record<string, string | number | boolean | undefined | null>;
   auth?: boolean;
   signal?: AbortSignal;
+  /** Lets the request outlive the page (used for reports sent on pagehide). */
+  keepalive?: boolean;
 }
 
 export interface ClientOptions {
@@ -143,7 +145,7 @@ export class ApiClient {
     }
     if (token) headers.authorization = `Bearer ${token}`;
     try {
-      return await this.fetchFn(this.url(path, o.query), { method, headers, body, signal: o.signal });
+      return await this.fetchFn(this.url(path, o.query), { method, headers, body, signal: o.signal, ...(o.keepalive ? { keepalive: true } : {}) });
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') throw e;
       throw new ApiError(0, 'network', 'You appear to be offline. Check your connection and try again.');
@@ -342,9 +344,9 @@ export class ApiClient {
   // ---- Playback ----------------------------------------------------------------------------------
   trackStream = (id: string, profile: StreamProfile) => this.get<TrackStream>(`/v1/tracks/${enc(id)}/stream`, { profile });
   videoStream = (id: string) => this.get<VideoStream>(`/v1/videos/${enc(id)}/stream`);
-  sendPlaybackEvents = (events: PlaybackEvent[]) => this.request<void>('POST', '/v1/me/playback/events', { body: { events } });
-  saveTrackProgress = (id: string, positionMs: number) =>
-    this.request<void>('PUT', `/v1/me/progress/tracks/${enc(id)}`, { body: { positionMs: Math.round(positionMs) } });
+  sendPlaybackEvents = (events: PlaybackEvent[], keepalive = false) => this.request<void>('POST', '/v1/me/playback/events', { body: { events }, keepalive });
+  saveTrackProgress = (id: string, positionMs: number, keepalive = false) =>
+    this.request<void>('PUT', `/v1/me/progress/tracks/${enc(id)}`, { body: { positionMs: Math.round(positionMs) }, keepalive });
   saveVideoProgress = (id: string, positionMs: number, durationMs: number) =>
     this.request<void>('PUT', `/v1/me/progress/videos/${enc(id)}`, {
       body: { positionMs: Math.round(positionMs), durationMs: Math.round(durationMs), updatedAt: new Date().toISOString() },

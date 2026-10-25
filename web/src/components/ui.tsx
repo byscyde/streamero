@@ -144,7 +144,7 @@ export function PlayButton({ onClick, playing, size = 56, label = 'Play', varian
 
 export function AlbumCard({ album, onPlay }: { album: Album; onPlay?: () => void }) {
   const year = album.releaseDate?.slice(0, 4);
-  const type = album.albumType ? album.albumType[0].toUpperCase() + album.albumType.slice(1) : 'Album';
+  const type = album.albumType === 'ep' ? 'EP' : album.albumType ? album.albumType[0].toUpperCase() + album.albumType.slice(1) : 'Album';
   return (
     <Link to={`/album/${album.id}`} className="card">
       <div className="card-art">
@@ -244,7 +244,16 @@ export function TrackRow({
   const isCurrent = cur?.id === track.id;
   const liked = useSaved('track', track.id);
   return (
-    <div className={`track-row ${isCurrent ? 'current' : ''}`} onDoubleClick={onPlay} data-index={index}>
+    <div
+      className={`track-row ${isCurrent ? 'current' : ''}`}
+      onDoubleClick={onPlay}
+      onClick={(e) => {
+        // Touch screens: a tap on the row plays (desktop uses double-click or the play buttons).
+        if ((e.target as HTMLElement).closest('a,button')) return;
+        if (window.matchMedia?.('(pointer: coarse)').matches) onPlay();
+      }}
+      data-index={index}
+    >
       {dragHandle}
       {number !== undefined && (
         <div className="tr-num">

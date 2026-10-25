@@ -173,8 +173,8 @@ p { margin: 0 0 8px; }
 .side-user:hover, .side-user.active { background: #111114; text-decoration: none; }
 .by { font-size: 12px; color: var(--text-3); padding: 0 10px; }
 
-.topbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; padding: 14px var(--gutter); pointer-events: none; height: 0; overflow: visible; }
-.topbar > * { pointer-events: auto; transform: translateY(18px); }
+.topbar { position: absolute; top: 0; left: 0; right: 0; z-index: 5; display: flex; align-items: flex-start; justify-content: space-between; padding: 0 var(--gutter); pointer-events: none; height: 0; overflow: visible; }
+.topbar > * { pointer-events: auto; transform: translateY(16px); }
 .topbar-user .art { width: 34px; height: 34px; border: 2px solid rgba(0,0,0,.4); }
 .page { padding: 64px var(--gutter) 40px; max-width: 1600px; margin: 0 auto; }
 .page-title { font-size: 32px; font-weight: 800; margin-bottom: 20px; }
@@ -451,9 +451,9 @@ p { margin: 0 0 8px; }
 .nb-center { display: flex; flex-direction: column; align-items: center; gap: 4px; max-width: 720px; width: 100%; justify-self: center; }
 .nb-right { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
 .transport { display: flex; align-items: center; gap: 14px; }
-.transport .main { width: 38px; height: 38px; }
+.transport .tp-main { width: 38px; height: 38px; }
 .transport.big { gap: 0; justify-content: space-between; width: 100%; }
-.transport.big .main { width: 88px; height: 88px; }
+.transport.big .tp-main { width: 88px; height: 88px; }
 .transport.big .icon-btn { width: 52px; height: 52px; color: var(--text); }
 .transport.big .icon-btn.on { color: var(--accent); }
 .quality-badge { font: 700 10px var(--ui-font); letter-spacing: .06em; padding: 3px 6px; border-radius: 4px; border: 1px solid var(--border); color: var(--text-2); margin-right: 6px; white-space: nowrap; }
@@ -540,7 +540,7 @@ p { margin: 0 0 8px; }
 /* ---- Mobile ----------------------------------------------------------------------------------- */
 .hide-xs { }
 @media (max-width: 1180px) {
-  .artist-grid { grid-template-columns: 1fr; gap: 0; }
+  .artist-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .shell.has-panel { grid-template-columns: var(--sidebar-w) minmax(0, 1fr) 320px; }
   .volume { width: 110px; }
 }
@@ -613,7 +613,7 @@ p { margin: 0 0 8px; }
   .fp-tabs button { padding: 0 14px; height: 36px; }
   .fp-body { padding: 0 20px 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); gap: 0; }
   .fp-body:not(.tab-song) .fp-song { display: none; }
-  .fp-side { width: 100%; background: none; padding: 0; backdrop-filter: none; margin: 0 -20px; width: calc(100% + 40px); }
+  .fp-side { background: none; padding: 0; backdrop-filter: none; margin: 0 -20px; width: calc(100% + 40px); border-radius: 0; }
   .fp-mini { display: flex; align-items: center; gap: 12px; padding: 10px 20px; background: rgba(0,0,0,.35); position: sticky; top: 0; z-index: 2; }
   .fp-mini .art { width: 52px; height: 52px; }
   .fp-mini .icon-btn { color: var(--text); }
@@ -623,7 +623,8 @@ p { margin: 0 0 8px; }
   .fp-titles h2 { font-size: 22px; }
   .fp-titles p { font-size: 15px; }
   .fp-volume { display: none; }
-  .transport.big .main { width: 76px; height: 76px; }
+  .fp-info .quality-badge { display: none; }
+  .transport.big .tp-main { width: 76px; height: 76px; }
   .eq-bands { gap: 0; }
   .vslider { height: 130px; }
   .inline-form { flex-direction: column; align-items: stretch; }

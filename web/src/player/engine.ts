@@ -186,8 +186,10 @@ export class AudioEngine {
     try {
       await this.element.play();
     } catch (e) {
-      if ((e as Error).name === 'NotAllowedError') this.ev.onPlaying(false);
-      else if ((e as Error).name !== 'AbortError') this.ev.onError('Playback failed.');
+      const name = (e as Error).name;
+      if (name === 'NotAllowedError') this.ev.onPlaying(false);
+      // NotSupportedError / media errors are already reported by the element's "error" event.
+      else if (name !== 'AbortError' && name !== 'NotSupportedError' && !this.element.error) this.ev.onError('Playback failed.');
     }
   }
 

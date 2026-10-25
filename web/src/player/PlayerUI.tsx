@@ -86,7 +86,7 @@ function Transport({ big }: { big?: boolean }) {
       <button className="icon-btn" aria-label="Previous" onClick={controls.previous}>
         <I.IconPrev size={s} />
       </button>
-      <button className={`play-btn white main ${waiting && playing ? 'loading' : ''}`} aria-label={playing ? 'Pause' : 'Play'} onClick={controls.toggle}>
+      <button className={`play-btn white tp-main ${waiting && playing ? 'loading' : ''}`} aria-label={playing ? 'Pause' : 'Play'} onClick={controls.toggle}>
         {playing ? <I.IconPause size={big ? 34 : 18} /> : <I.IconPlay size={big ? 34 : 18} style={{ marginLeft: big ? 4 : 2 }} />}
       </button>
       <button className="icon-btn" aria-label="Next" onClick={controls.next}>

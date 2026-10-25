@@ -166,13 +166,13 @@ function finishSession(completed: boolean) {
   if (!flushTimer) flushTimer = setTimeout(flushEvents, 2000);
 }
 
-export async function flushEvents() {
+export async function flushEvents(keepalive = false) {
   flushTimer = null;
   const pending = settings.pendingEvents as PlaybackEvent[];
   if (!pending.length || !api.hasSession) return;
   const batch = pending.slice(0, 100);
   try {
-    await api.sendPlaybackEvents(batch); // idempotent on clientEventId
+    await api.sendPlaybackEvents(batch, keepalive); // idempotent on clientEventId
     const sent = new Set(batch.map((e) => e.clientEventId));
     settings.pendingEvents = (settings.pendingEvents as PlaybackEvent[]).filter((e) => !sent.has(e.clientEventId));
   } catch (e) {
@@ -180,12 +180,12 @@ export async function flushEvents() {
   }
 }
 
-function saveProgress() {
+function saveProgress(keepalive = false) {
   const item = Q.current(player.get().queue);
   if (!item || !api.hasSession) return;
   lastProgressSave = Date.now();
   const t = player.get().time;
-  if (t > 5) api.saveTrackProgress(item.track.id, t * 1000).catch(() => undefined);
+  if (t > 5) api.saveTrackProgress(item.track.id, t * 1000, keepalive).catch(() => undefined);
 }
 
 // ---- Cross-device playback state ------------------------------------------------------------------
@@ -463,7 +463,8 @@ export const controls = {
 if (typeof window !== 'undefined') {
   window.addEventListener('pagehide', () => {
     finishSession(false);
-    saveProgress();
+    saveProgress(true);
+    void flushEvents(true); // events stay queued in localStorage until acknowledged
   });
   setInterval(() => void flushEvents(), 30_000);
 }
