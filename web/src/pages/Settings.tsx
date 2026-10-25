@@ -8,6 +8,7 @@ import { controls } from '../player/player';
 import { setUser, signOut, useConfig, useLoad, useUser } from '../state/app';
 import { errorText, toast } from '../state/store';
 import { passwordProblem } from './Auth';
+import { describeDevice } from '../lib/format';
 
 function Card({ title, children, danger }: { title: string; children: ReactNode; danger?: boolean }) {
   return (
@@ -270,7 +271,7 @@ function SessionsCard() {
         {r.data?.items.map((s) => (
           <li key={s.id}>
             <span>
-              <span className="setting-label">{s.device || 'Unknown device'}</span>
+              <span className="setting-label" title={s.device ?? undefined}>{describeDevice(s.device)}</span>
               <span className="setting-detail">Last active {new Date(s.lastActiveAt).toLocaleString()}</span>
             </span>
             <button

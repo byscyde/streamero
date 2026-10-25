@@ -266,17 +266,19 @@ export function passwordProblem(pw: string): string | null {
   return null;
 }
 
-/**
- * The dashboard CSP only allows same-origin images (`img-src 'self' data: blob:`), so remote cover URLs
- * (e.g. coverartarchive.org) would be blocked. Returns true only for URLs the browser may load.
- */
+/** Hosts the dashboard CSP allows images from besides itself (MusicBrainz cover art, see infra/nginx.conf). */
+const IMAGE_HOSTS = [/^coverartarchive\.org$/, /^([a-z0-9-]+\.)*archive\.org$/];
+
+/** Returns true only for image URLs the dashboard CSP lets the browser load. */
 export function isDisplayableImage(url: string | null | undefined, origin = typeof location !== 'undefined' ? location.origin : ''): boolean {
   if (!url) return false;
   if (url.startsWith('data:image/') || url.startsWith('blob:')) return true;
   if (url.startsWith('//')) return false;
   if (url.startsWith('/')) return true;
   try {
-    return new URL(url).origin === origin;
+    const u = new URL(url);
+    if (u.origin === origin) return true;
+    return u.protocol === 'https:' && IMAGE_HOSTS.some((re) => re.test(u.hostname));
   } catch {
     return false;
   }

@@ -93,6 +93,7 @@ Zatim automatski:
 ```
 ✅ STREAMERO radi!
    Adresa za iPhone aplikaciju:  https://app.streamero.net
+   Web player (preglednik):      https://app.streamero.net/
    Admin panel (preglednik):     https://app.streamero.net/admin/
    Admin email:                  ti@primjer.hr
    Admin lozinka:                ********   (spremljeno i u /opt/streamero/streamero-admin-credentials.txt)
@@ -185,6 +186,20 @@ u pozadini, a sve se odmah sinkronizira čim se aplikacija otvori.
 Ukućani/prijatelji: neka naprave vlastiti račun u aplikaciji. U admin panelu → **Users & roles** možeš
 nekome dati ulogu *editor* (smije dodavati glazbu) ili onemogućiti račun.
 
+### Web player i admin panel
+
+- **`https://app.streamero.net/`** — web verzija aplikacije (radi u Chromeu, Firefoxu, Safariju i na mobitelu):
+  glazba, videi, tekstovi pjesama, playliste, equalizer s 10 pojasa, postavke računa i promjena lozinke.
+  Linkovi iz emailova (reset lozinke, potvrda emaila) otvaraju se ovdje.
+- **`https://app.streamero.net/admin/`** — admin panel:
+  - **Users & roles** — dodavanje, uređivanje, brisanje korisnika, nova lozinka, slanje reset linka;
+  - **Appearance** — boje, font naslova, zaobljenost, tekstovi, redoslijed sekcija, uključivanje/isključivanje
+    funkcija i obavijest za korisnike; pregled uživo, a otvorene aplikacije (iOS i web) primijene promjene
+    u roku od ~30 sekundi, bez nove verzije aplikacije;
+  - **Metadata lookup** — upišeš ime pjesme, dobiješ popis iz MusicBrainza i jednim klikom popuniš naziv,
+    izvođača, album, godinu, žanr i naslovnicu. Za automatsko popunjavanje novih pjesama u `.env` postavi
+    `METADATA_AUTOFILL=true`. (Audio datoteke dodaješ sam — STREAMERO ne preuzima glazbu s YouTubea.)
+
 ## 9. Varijante
 
 **Samo kućna mreža (bez domene):** opcija 3 u skripti služi samo za testiranje admin panela u pregledniku
@@ -195,14 +210,16 @@ pa za nju server mora biti dostupan na toj domeni.
 
 ## 10. Email (preporučeno)
 
-Za potvrdu emaila i "zaboravljenu lozinku" upiši SMTP u `/opt/streamero/.env`, npr. Gmail s App Passwordom:
+Za potvrdu emaila, reset lozinke i pozivnice novim korisnicima upiši SMTP sandučića **no-reply@scyde.dev**
+u `/opt/streamero/.env` (podatke za SMTP daje tvoj mail provider za scyde.dev):
 
 ```
-SMTP_URL=smtps://tvoj.racun%40gmail.com:APP_PASSWORD@smtp.gmail.com:465
-MAIL_FROM="STREAMERO <tvoj.racun@gmail.com>"
+SMTP_URL=smtps://no-reply%40scyde.dev:LOZINKA_SANDUCICA@smtp.tvoj-provider.com:465
+MAIL_FROM="STREAMERO <no-reply@scyde.dev>"
 ```
 
 (`@` u korisničkom imenu piše se kao `%40`.) Zatim: `sudo ./scripts/install-server.sh` (primijeni promjene).
+Da mailovi ne završe u spamu, za domenu `scyde.dev` u DNS-u moraju postojati SPF i DKIM zapisi tvog providera.
 Bez SMTP-a sve radi, osim slanja tih emailova.
 
 Opcionalno u `.env`: `YOUTUBE_API_KEY=` (YouTube pretraga u aplikaciji), `APPLE_CLIENT_IDS=` (Sign in with Apple).

@@ -90,3 +90,12 @@ export function syncDiff(prev: Record<string, string | undefined> | null, cur: R
   const changed = (k: string) => !!prev && prev[k] !== cur[k];
   return { catalog: changed('catalogVersion'), library: changed('libraryVersion'), config: !!prev && !!cur.configVersion && changed('configVersion') };
 }
+
+/** Friendly device label from a session's user agent / device name ("Chrome on macOS"). */
+export function describeDevice(ua: string | null | undefined): string {
+  if (!ua) return 'Unknown device';
+  if (!/Mozilla\//.test(ua)) return ua; // app-provided device names (e.g. "STREAMERO-iOS")
+  const browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\/|CriOS/.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+  const os = /iPhone|iPad|iPod/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac OS X|Macintosh/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /CrOS/.test(ua) ? 'ChromeOS' : /Linux/.test(ua) ? 'Linux' : '';
+  return os ? `${browser} on ${os}` : browser;
+}

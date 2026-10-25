@@ -78,6 +78,8 @@ export interface RequestOptions {
   signal?: AbortSignal;
   /** Lets the request outlive the page (used for reports sent on pagehide). */
   keepalive?: boolean;
+  /** Fetch cache mode, e.g. 'no-cache' to revalidate a publicly cacheable response. */
+  cache?: RequestCache;
 }
 
 export interface ClientOptions {
@@ -145,7 +147,7 @@ export class ApiClient {
     }
     if (token) headers.authorization = `Bearer ${token}`;
     try {
-      return await this.fetchFn(this.url(path, o.query), { method, headers, body, signal: o.signal, ...(o.keepalive ? { keepalive: true } : {}) });
+      return await this.fetchFn(this.url(path, o.query), { method, headers, body, signal: o.signal, ...(o.keepalive ? { keepalive: true } : {}), ...(o.cache ? { cache: o.cache } : {}) });
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') throw e;
       throw new ApiError(0, 'network', 'You appear to be offline. Check your connection and try again.');
@@ -283,7 +285,8 @@ export class ApiClient {
   }
 
   // ---- App config & sync -------------------------------------------------------------------------
-  appConfig = () => this.request<AppConfig>('GET', '/v1/app/config', { auth: false });
+  /** Public and cacheable for 30 s (ETag = version): revalidate so a changed configVersion is seen at once. */
+  appConfig = () => this.request<AppConfig>('GET', '/v1/app/config', { auth: false, cache: 'no-cache' });
   syncState = () => this.get<SyncState>('/v1/sync/state');
 
   // ---- Catalog -----------------------------------------------------------------------------------

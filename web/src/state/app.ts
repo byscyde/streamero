@@ -176,7 +176,8 @@ export async function pollSync() {
     const cur = { catalogVersion: s.catalogVersion, libraryVersion: s.libraryVersion, configVersion: s.configVersion };
     const d = syncDiff(lastSync, cur);
     lastSync = cur;
-    if (d.config || (s.configVersion && s.configVersion !== app.get().config.version && app.get().config.version !== 'default')) await loadConfig();
+    // configVersion equals the config document's version (docs/APP_CONFIG.md): refetch when they differ.
+    if (d.config || (s.configVersion && s.configVersion !== app.get().config.version)) await loadConfig();
     if (d.catalog) app.set((x) => ({ catalogTick: x.catalogTick + 1 }));
     if (d.library) {
       await refreshLibrary();

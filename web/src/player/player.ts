@@ -52,13 +52,23 @@ async function resolveStream(track: Track): Promise<TrackStream> {
   const key = `${track.id}:${wanted}`;
   const hit = streamCache.get(key);
   if (hit && hit.until > Date.now()) return hit.s;
-  let s = await api.trackStream(track.id, wanted);
-  // Lossless is delivered as ALAC/FLAC which not every browser decodes: fall back to "high".
-  if (engine && s.mimeType && !engine.canPlay(s.mimeType) && wanted !== 'high') s = await api.trackStream(track.id, 'high');
+  let s = await api.trackStream(track.id, losslessBroken && wanted === 'lossless' ? 'high' : wanted);
+  // Lossless is delivered as ALAC (in MP4) which Chrome/Firefox can't decode: fall back to "high".
+  if (s.delivery?.lossless && !eng().canPlay(streamMime(s))) s = await api.trackStream(track.id, 'high');
   const until = Math.min(Date.parse(s.expiresAt) || Date.now() + 3600_000, Date.now() + 6 * 3600_000) - 60_000;
   streamCache.set(key, { s, until });
   return s;
 }
+
+/** MIME type with codec parameter, so canPlayType can tell ALAC/FLAC apart from AAC in MP4. */
+export function streamMime(s: Pick<TrackStream, 'mimeType' | 'delivery'>): string {
+  const c = s.delivery?.codec?.toLowerCase();
+  const codec = c === 'aac' ? 'mp4a.40.2' : c === 'alac' ? 'alac' : c === 'flac' ? 'flac' : c === 'opus' ? 'opus' : c === 'mp3' ? 'mp3' : null;
+  return codec && s.mimeType ? `${s.mimeType}; codecs="${codec}"` : s.mimeType;
+}
+
+/** Set when a lossless stream failed to decode despite canPlayType: later tracks go straight to "high". */
+let losslessBroken = false;
 
 // ---- Engine ---------------------------------------------------------------------------------------
 let engine: AudioEngine | null = null;
@@ -101,6 +111,14 @@ function eng(): AudioEngine {
       void startCurrent(true);
     },
     onError(message) {
+      // A lossless rendition the browser claimed to support but can't decode: retry once at "high".
+      const st = player.get().stream;
+      if (st?.delivery.lossless && !losslessBroken) {
+        losslessBroken = true;
+        streamCache.clear();
+        void startCurrent(true, player.get().time);
+        return;
+      }
       player.set({ playing: false, waiting: false });
       toast(message, 'error');
     },
@@ -455,6 +473,7 @@ export const controls = {
   /** Quality changed in settings: drop cached URLs so the next track uses the new profile. */
   invalidateStreams() {
     streamCache.clear();
+    losslessBroken = false;
     engine?.clearPreload();
     preloadingFor = null;
   },

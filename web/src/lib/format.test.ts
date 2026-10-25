@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { needsCors } from '../player/engine';
-import { compactNumber, formatDuration, formatTime, greetingFor, ListeningSession } from './format';
+import { compactNumber, describeDevice, formatDuration, formatTime, greetingFor, ListeningSession } from './format';
+import { streamMime } from '../player/player';
 
 describe('formatting', () => {
   it('formats times and durations', () => {
@@ -54,5 +55,19 @@ describe('needsCors', () => {
     expect(needsCors('/v1/media/x', 'https://app.streamero.net')).toBe(false);
     expect(needsCors('https://app.streamero.net/v1/media/x', 'https://app.streamero.net')).toBe(false);
     expect(needsCors('https://cdn.example.com/a.m4a', 'https://app.streamero.net')).toBe(true);
+  });
+});
+
+describe('devices and codecs', () => {
+  it('describes sessions', () => {
+    expect(describeDevice('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0 Safari/537.36')).toBe('Chrome on Linux');
+    expect(describeDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15')).toBe('Safari on macOS');
+    expect(describeDevice('STREAMERO-iOS')).toBe('STREAMERO-iOS');
+    expect(describeDevice(null)).toBe('Unknown device');
+  });
+  it('adds codec parameters to stream MIME types', () => {
+    expect(streamMime({ mimeType: 'audio/mp4', delivery: { codec: 'alac', lossless: true } })).toBe('audio/mp4; codecs="alac"');
+    expect(streamMime({ mimeType: 'audio/mp4', delivery: { codec: 'aac', lossless: false } })).toBe('audio/mp4; codecs="mp4a.40.2"');
+    expect(streamMime({ mimeType: 'audio/mpeg', delivery: { codec: null, lossless: false } })).toBe('audio/mpeg');
   });
 });

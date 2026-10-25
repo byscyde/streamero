@@ -1,5 +1,9 @@
 # STREAMERO
 
+<img src="design/logo-mark.svg" width="96" alt="STREAMERO logo">
+
+Developed by **[SCYDE](https://scyde.dev)**.
+
 **Your Sound. Your Screen. Your World.**
 
 STREAMERO is a self-hosted, premium music and video streaming platform: a native SwiftUI iPhone/iPad app
@@ -10,7 +14,8 @@ with background audio and CarPlay, a NestJS API with an FFmpeg media pipeline, a
 | iOS app | [`ios/`](ios) | Swift, SwiftUI, AVFoundation/AVKit, MediaPlayer, CarPlay, SwiftData — iOS 17+ |
 | Shared Swift core | [`ios/Packages/StreameroCore`](ios/Packages/StreameroCore) | Platform-independent models, API client, queue, lyrics/subtitle parsing (tested on Linux too) |
 | API + media worker | [`backend/`](backend) | TypeScript, NestJS 12, PostgreSQL 16, Redis + BullMQ, S3-compatible storage, FFmpeg/FFprobe, HLS |
-| Admin dashboard | [`admin/`](admin) | React 19, Vite, TypeScript |
+| Web player | [`web/`](web) | React 19, Vite, TypeScript, Web Audio (10-band EQ), hls.js — served at `/` |
+| Admin dashboard | [`admin/`](admin) | React 19, Vite, TypeScript — served at `/admin/` |
 | Infrastructure | [`docker-compose.yml`](docker-compose.yml), [`infra/`](infra) | Docker Compose, nginx, SeaweedFS (S3) |
 | Docs | [`docs/`](docs) | Architecture, API, deployment, iOS build/IPA, CarPlay, security, backups, testing |
 

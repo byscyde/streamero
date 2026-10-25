@@ -113,7 +113,10 @@ describe('helpers', () => {
     const o = 'https://admin.example';
     expect(isDisplayableImage('/v1/artwork/1', o)).toBe(true);
     expect(isDisplayableImage('https://admin.example/a.jpg', o)).toBe(true);
-    expect(isDisplayableImage('https://coverartarchive.org/release/x/front', o)).toBe(false);
+    expect(isDisplayableImage('https://coverartarchive.org/release/x/front', o)).toBe(true);
+    expect(isDisplayableImage('https://ia800.us.archive.org/a.jpg', o)).toBe(true);
+    expect(isDisplayableImage('http://coverartarchive.org/a.jpg', o)).toBe(false);
+    expect(isDisplayableImage('https://evil.example/a.jpg', o)).toBe(false);
     expect(isDisplayableImage('//evil.example/a.png', o)).toBe(false);
     expect(isDisplayableImage('data:image/png;base64,AA', o)).toBe(true);
     expect(isDisplayableImage(null, o)).toBe(false);

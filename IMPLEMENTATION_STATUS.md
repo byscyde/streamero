@@ -13,17 +13,21 @@ in this repository's environment; the evidence column says which.
 
 | Area | Status | Evidence |
 | --- | --- | --- |
-| Backend API (auth, catalog, library, playlists, playback, search, home, recommendations, downloads, admin) | ✅ Implemented | 68 Vitest tests (34 unit, 34 integration against real PostgreSQL/Redis/FFmpeg) |
+| Backend API (auth, catalog, library, playlists, playback, search, home, recommendations, downloads, admin) | ✅ Implemented | 85 Vitest tests (unit + integration against real PostgreSQL/Redis/FFmpeg) |
 | Media ingestion (chunked uploads, FFprobe validation, renditions, HLS, artwork, subtitles, duplicates, retries) | ✅ Implemented | Integration tests ingest generated FLAC/MP3/WAV/MP4 with real FFmpeg; Docker stack E2E |
 | Streaming (signed opaque URLs, Range, HLS + subtitle groups) | ✅ Implemented | Integration tests; E2E through nginx + S3 in Docker |
 | Docker Compose stack (nginx, API, worker, PostgreSQL, Redis, SeaweedFS S3) | ✅ Implemented | Built and run; upload → worker → stream verified |
 | Backups | ✅ Implemented | `scripts/backup.sh` run on the live stack; dump restored into a scratch DB and row counts checked |
 | Admin dashboard | ✅ Implemented | Typecheck, 4 unit tests, production build, browser screenshots against the live API |
-| StreameroCore (Swift) | ✅ Implemented | 34 XCTests on Linux (and in CI), including contract tests decoding real API responses |
+| StreameroCore (Swift) | ✅ Implemented | 55 XCTests on Linux (and in CI), incl. app-config decoding and equalizer DSP |
 | iOS app compiles & unsigned IPA builds | ✅ Verified in CI | `iOS` workflow: build job produced `STREAMERO-*-unsigned.ipa` |
 | iOS unit + UI smoke tests | ✅ Verified in CI | 5 unit tests + 1 UI test on iPhone 16 Pro simulator (iOS 18.5) |
 | Fixed service address + 30 s sync | ✅ Implemented | App always uses `https://app.streamero.net` (build setting `STREAMERO_SERVER_URL`, https only, no server UI). `SyncCenter` polls `GET /v1/sync/state` every 30 s while the app is active or playing in the background; changed versions trigger library/catalog reloads. When the app is suspended, iOS only allows system-scheduled `BGAppRefresh` (≥ ~15 min) — true real-time push would need APNs. Backend endpoint covered by an integration test |
 | Streaming-app style UI (dark theme, Home shortcuts/chips, Search "Browse all", Your Library, artwork-tinted headers/mini player/lyrics) | ✅ Implemented | Own name, icon and wording; layout and interaction patterns follow common music-streaming conventions. Compiled and UI-smoke-tested in CI only (no device screenshots) |
+| Web player (`/`) | ✅ Implemented | 49 unit tests, build + audit in CI; Playwright run against a real local backend (register, play, follow, playlists, appearance change). Lossless ALAC falls back to AAC in browsers that cannot decode it; no web downloads/crossfade/Apple sign-in |
+| Remote appearance config (admin → apps within ~30 s) | ✅ Implemented | Backend integration tests; admin render tests; verified end-to-end with the web player |
+| Admin user management, metadata lookup (MusicBrainz) | ✅ Implemented | Integration tests with mocked MusicBrainz; response shapes checked against the live API once. No audio is downloaded from YouTube or other services |
+| 10-band equalizer | ✅ Web verified in a browser; iOS compiled + DSP unit-tested, **not heard on a device** | iOS uses an MTAudioProcessingTap on music items (not on HLS video audio / AirPlay) |
 | iOS features on a real device (audio, background, lock screen, Bluetooth, AirPlay, PiP, downloads) | ⚠️ Implemented, **not device-tested** | Requires a physical iPhone; see checklist below |
 | CarPlay | ⚠️ Implemented, **blocked** on Apple entitlement | Needs `com.apple.developer.carplay-audio` approved for your team |
 | Sign in with Apple | ⚠️ Implemented, not exercised | Needs an Apple Developer team, Services ID, and `APPLE_CLIENT_IDS` |

@@ -51,6 +51,12 @@ rely on every field being present.
 }
 ```
 
+`home.sectionsOrder` ids map onto `GET /v1/home` section kinds (identically in web and iOS):
+`recommended_playlists` → featured_playlists, editorial · `genres` → genres, moods · `top_artists` →
+favorite_artists · `new_albums` → recently_added, album_recommendations · `popular_singles` → trending ·
+`recently_played` → continue_listening, recently_played · `made_for_you` → made_for_you ·
+`music_videos` → music_videos, continue_watching. Unmapped kinds keep server order after the listed ones.
+
 Endpoints:
 
 | Method & path | Auth | Purpose |

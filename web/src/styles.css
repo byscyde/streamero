@@ -173,7 +173,7 @@ p { margin: 0 0 8px; }
 .side-user:hover, .side-user.active { background: #111114; text-decoration: none; }
 .by { font-size: 12px; color: var(--text-3); padding: 0 10px; }
 
-.topbar { position: absolute; top: 0; left: 0; right: 0; z-index: 5; display: flex; align-items: flex-start; justify-content: space-between; padding: 0 var(--gutter); pointer-events: none; height: 0; overflow: visible; }
+.topbar { position: relative; z-index: 5; display: flex; align-items: flex-start; justify-content: space-between; padding: 0 var(--gutter); pointer-events: none; height: 0; overflow: visible; }
 .topbar > * { pointer-events: auto; transform: translateY(16px); }
 .topbar-user .art { width: 34px; height: 34px; border: 2px solid rgba(0,0,0,.4); }
 .page { padding: 64px var(--gutter) 40px; max-width: 1600px; margin: 0 auto; }
