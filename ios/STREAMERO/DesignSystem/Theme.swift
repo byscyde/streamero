@@ -66,7 +66,7 @@ enum Theme {
             (0x0F3D6E, 0x2F8CFF), // navy → blue
             (0xFF7A18, 0xFFC03A), // orange → amber
             (0x5B2A86, 0xB24BF3), // plum → purple
-            (0x00897B, 0x35C2B0), // teal
+            (0xC2185B, 0xFF6EC7), // magenta
             (0xB0124D, 0xFF5A8A), // raspberry
             (0x1F2A44, 0x5B6B8C), // slate
             (0x9C3D00, 0xFF8A3D), // rust

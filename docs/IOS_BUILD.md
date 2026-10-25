@@ -12,7 +12,7 @@ Configuration (build settings in `project.yml`, overridable on the command line)
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
-| `STREAMERO_BUNDLE_ID` | `com.example.streamero` | Bundle identifier (use your own reverse-DNS id) |
+| `STREAMERO_BUNDLE_ID` | `com.scyde.streamero` | Bundle identifier (use your own reverse-DNS id) |
 | `STREAMERO_SERVER_URL` | `https://app.streamero.net` | The fixed service address compiled into the app (https only; users never see or change it) |
 | `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` | `1.0.0` / `1` | Version (SemVer) and build number (increment every upload) |
 | `DEVELOPMENT_TEAM` | empty | Your Apple team id for signed builds |

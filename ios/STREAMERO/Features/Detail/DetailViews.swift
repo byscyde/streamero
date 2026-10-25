@@ -8,34 +8,36 @@ struct ArtistView: View {
     @Environment(AppModel.self) private var app
     @Environment(AudioPlayer.self) private var player
     @Environment(LibraryStore.self) private var library
+    @Environment(AppearanceStore.self) private var appearance
     @State private var showAllTracks = false
     @State private var showBio = false
+    @State private var startingRadio = false
 
     var body: some View {
         AsyncContent(load: { try await app.api!.artist(id) }) { (page: ArtistPage) in
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xxl) {
                     hero(page)
+                    newReleases(page)
                     let top = showAllTracks ? page.topTracks : Array(page.topTracks.prefix(5))
                     if !top.isEmpty {
-                        VStack(alignment: .leading, spacing: Theme.Spacing.s) {
-                            SectionHeader(title: "Popular")
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                            if page.topTracks.count > 5 {
+                                SectionHeader(title: "Top songs", action: (title: showAllTracks ? "Less" : "More", run: { withAnimation { showAllTracks.toggle() } }))
+                            } else {
+                                SectionHeader(title: "Top songs")
+                            }
                             ForEach(Array(top.enumerated()), id: \.element.id) { i, t in
-                                TrackRow(track: t, index: i + 1, subtitle: t.album?.title) {
+                                TrackRow(track: t, subtitle: t.artist.name, accessory: .plays) {
                                     player.play(tracks: page.topTracks, startAt: i, context: PlaybackContext(type: "artist", id: id, title: page.artist.name))
                                 }
-                            }
-                            if page.topTracks.count > 5 {
-                                Button(showAllTracks ? "Show less" : "Show more") { withAnimation { showAllTracks.toggle() } }
-                                    .font(Theme.Typography.callout.weight(.semibold))
-                                    .padding(.horizontal, Theme.Spacing.screen)
                             }
                         }
                     }
                     releaseShelf("Albums", page.releases.albums)
                     releaseShelf("Singles & EPs", page.releases.singles)
                     releaseShelf("Compilations", page.releases.compilations)
-                    if !page.videos.isEmpty {
+                    if !page.videos.isEmpty && appearance.features.videos {
                         Shelf(title: "Music videos", items: page.videos) { v in NavigationLink(value: Route.video(v.id)) { VideoCard(video: v) }.buttonStyle(.plain) }
                     }
                     if let bio = page.artist.bio, !bio.isEmpty {
@@ -63,46 +65,86 @@ struct ArtistView: View {
     private func hero(_ page: ArtistPage) -> some View {
         let followed = library.contains(.artist, id)
         let context = PlaybackContext(type: "artist", id: id, title: page.artist.name)
-        return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+        return VStack(alignment: .leading, spacing: Theme.Spacing.l) {
             GeometryReader { geo in
                 let minY = geo.frame(in: .global).minY
                 ZStack(alignment: .bottomLeading) {
                     ArtworkView(url: page.artist.artworkUrl, size: geo.size.width, cornerRadius: 0, placeholderSymbol: "music.mic")
-                        .frame(width: geo.size.width, height: 340 + max(0, minY))
+                        .frame(width: geo.size.width, height: 420 + max(0, minY))
                         .clipped()
                     Theme.Gradients.scrim
-                    Text(page.artist.name)
-                        .font(.system(size: 44, weight: .heavy))
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.5)
-                        .padding(.horizontal, Theme.Spacing.screen)
-                        .padding(.bottom, Theme.Spacing.m)
+                    LinearGradient(colors: [.clear, Theme.Palette.background], startPoint: .center, endPoint: .bottom)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(page.artist.name)
+                            .font(Theme.Typography.media(52, weight: .heavy))
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.4)
+                        if let followers = page.artist.followerCount, followers > 0 {
+                            Text("\(Format.compact(followers)) Followers").font(.system(size: 16)).foregroundStyle(.white.opacity(0.75))
+                        }
+                    }
+                    .padding(.horizontal, Theme.Spacing.screen)
+                    .padding(.bottom, Theme.Spacing.s)
                 }
                 .offset(y: -max(0, minY)) // stretchy header on pull-down
             }
-            .frame(height: 340)
-            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-                if let followers = page.artist.followerCount, followers > 0 {
-                    Text(Format.count(followers, "follower")).font(.system(size: 13)).foregroundStyle(Theme.Palette.textSecondary)
+            .frame(height: 420)
+            HStack(spacing: Theme.Spacing.s) {
+                Button(followed ? "Following" : "Follow") {
+                    library.toggle(.artist, id)
+                    Haptics.toggle()
                 }
-                HStack(spacing: Theme.Spacing.l) {
-                    Button(followed ? "Following" : "Follow") {
-                        library.toggle(.artist, id)
-                        Haptics.toggle()
+                .buttonStyle(FollowButtonStyle(followed: followed))
+                .accessibilityValue(followed ? "Following" : "Not following")
+                Button { player.play(tracks: page.topTracks, context: context, shuffle: true) } label: {
+                    Label("Shuffle", systemImage: "shuffle")
+                }
+                .buttonStyle(SecondaryButtonStyle(fullWidth: true, height: 46))
+                .disabled(page.topTracks.isEmpty)
+                if appearance.features.radio {
+                    Button { startRadio(page) } label: {
+                        if startingRadio { ProgressView() } else { Label("Radio", systemImage: "dot.radiowaves.left.and.right") }
                     }
-                    .buttonStyle(SecondaryButtonStyle())
-                    .accessibilityValue(followed ? "Following" : "Not following")
-                    Spacer()
-                    IconButton(systemName: "shuffle", label: "Shuffle", size: 24, tint: player.queue.shuffle ? Theme.Palette.accent : Theme.Palette.textSecondary) {
-                        player.play(tracks: page.topTracks, context: context, shuffle: true)
-                    }
-                    PlayCircleButton(isPlaying: player.isPlaying && player.queue.context?.id == id) {
-                        if player.queue.context?.id == id { player.togglePlayPause() } else { player.play(tracks: page.topTracks, context: context) }
-                    }
+                    .buttonStyle(SecondaryButtonStyle(fullWidth: true, height: 46))
+                    .disabled(startingRadio)
+                    .accessibilityHint("Plays a station of \(page.artist.name) and similar music")
                 }
             }
             .padding(.horizontal, Theme.Spacing.screen)
+        }
+    }
+
+    /// The newest releases as swipeable cards with a big white play button.
+    @ViewBuilder private func newReleases(_ page: ArtistPage) -> some View {
+        let releases = Array((page.releases.albums + page.releases.singles)
+            .sorted { ($0.releaseDate ?? "") > ($1.releaseDate ?? "") }
+            .prefix(3))
+        if !releases.isEmpty {
+            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                SectionHeader(title: "New releases")
+                TabView {
+                    ForEach(releases) { album in
+                        ReleaseCard(album: album).padding(.horizontal, Theme.Spacing.screen)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: releases.count > 1 ? .always : .never))
+                .frame(height: 158)
+            }
+        }
+    }
+
+    private func startRadio(_ page: ArtistPage) {
+        startingRadio = true
+        Task {
+            defer { startingRadio = false }
+            var pool = page.topTracks
+            if let genre = page.artist.genres.first, let more = try? await app.api?.tagTracks(kind: "genre", name: genre, limit: 60).items {
+                let known = Set(pool.map(\.id))
+                pool += more.filter { !known.contains($0.id) }
+            }
+            guard !pool.isEmpty else { return }
+            player.play(tracks: pool.shuffled(), context: PlaybackContext(type: "radio", id: "artist-radio-\(id)", title: "\(page.artist.name) Radio"))
         }
     }
 
@@ -110,6 +152,54 @@ struct ArtistView: View {
         if !albums.isEmpty {
             Shelf(title: title, items: albums) { a in NavigationLink(value: Route.album(a.id)) { AlbumCard(album: a) }.buttonStyle(.plain) }
         }
+    }
+}
+
+/// Filled accent pill while not following; outlined once followed.
+struct FollowButtonStyle: ButtonStyle {
+    let followed: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(followed ? Theme.Palette.textPrimary : Theme.Palette.onAccent)
+            .frame(maxWidth: .infinity, minHeight: 46)
+            .background(followed ? Color.clear : Theme.Palette.accent, in: Capsule())
+            .overlay(Capsule().strokeBorder(followed ? Theme.Palette.textPrimary.opacity(0.85) : Color.clear, lineWidth: 1.2))
+            .contentShape(Capsule())
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+    }
+}
+
+/// "New releases" card: artwork, mono title, "EP • 2024 • 4 Songs" and a white play button.
+struct ReleaseCard: View {
+    let album: Album
+    @Environment(AppModel.self) private var app
+    @Environment(AudioPlayer.self) private var player
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.l) {
+            NavigationLink(value: Route.album(album.id)) {
+                HStack(spacing: Theme.Spacing.l) {
+                    ArtworkView(url: album.artworkUrl, size: 92, cornerRadius: Theme.Radius.artwork, placeholderSymbol: "square.stack")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(album.title).font(Theme.Typography.media(17, weight: .medium)).foregroundStyle(Theme.Palette.textPrimary).lineLimit(2)
+                        Text([album.typeLabel, album.releaseYear, Format.count(album.trackCount, "Song")].compactMap { $0 }.joined(separator: " • "))
+                            .font(.system(size: 14)).foregroundStyle(Theme.Palette.textSecondary).lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            .buttonStyle(.plain)
+            PlayCircleButton(isPlaying: player.isPlaying && player.queue.context?.id == album.id, size: 60) {
+                if player.queue.context?.id == album.id { player.togglePlayPause(); return }
+                Task {
+                    guard let page = try? await app.api?.album(album.id) else { return }
+                    player.play(tracks: page.tracks, context: PlaybackContext(type: "album", id: album.id, title: album.title))
+                }
+            }
+        }
+        .padding(Theme.Spacing.l)
+        .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
     }
 }
 
@@ -166,12 +256,12 @@ struct AlbumView: View {
         let a = page.album
         let context = PlaybackContext(type: "album", id: id, title: a.title)
         return VStack(alignment: .leading, spacing: Theme.Spacing.m) {
-            ArtworkView(url: a.artworkUrl, size: 240, placeholderSymbol: "square.stack")
+            ArtworkView(url: a.artworkUrl, size: 240, cornerRadius: Theme.Radius.card, placeholderSymbol: "square.stack")
                 .shadow(color: .black.opacity(0.5), radius: 20, y: 10)
                 .frame(maxWidth: .infinity)
                 .padding(.top, Theme.Spacing.l)
                 .padding(.bottom, Theme.Spacing.s)
-            Text(a.title).font(.system(size: 24, weight: .bold)).lineLimit(3)
+            Text(a.title).font(Theme.Typography.media(26, weight: .heavy)).lineLimit(3)
             NavigationLink(value: Route.artist(a.artist.id)) {
                 HStack(spacing: Theme.Spacing.s) {
                     Text(a.artist.name).font(.system(size: 14, weight: .bold)).foregroundStyle(Theme.Palette.textPrimary)
@@ -179,21 +269,23 @@ struct AlbumView: View {
             }
             .buttonStyle(.plain)
             HStack(spacing: 6) {
-                Text([a.albumType == "single" ? "Single" : a.albumType.capitalized, a.releaseYear].compactMap { $0 }.joined(separator: " • "))
+                Text([a.typeLabel, a.releaseYear].compactMap { $0 }.joined(separator: " • "))
                 if a.explicit { ExplicitBadge() }
                 if page.tracks.contains(where: \.supportsLossless) { QualityBadge(text: "Lossless", lossless: true) }
             }
             .font(.system(size: 13))
             .foregroundStyle(Theme.Palette.textSecondary)
             HStack(spacing: Theme.Spacing.l) {
-                IconButton(systemName: saved ? "checkmark.circle.fill" : "plus.circle", label: saved ? "Remove from Your Library" : "Save to Your Library", size: 26, tint: saved ? Theme.Palette.accent : Theme.Palette.textSecondary) {
+                IconButton(systemName: saved ? "heart.fill" : "heart", label: saved ? "Remove from Your Library" : "Save to Your Library", size: 24, tint: saved ? Theme.Palette.accent : Theme.Palette.textPrimary) {
                     library.toggle(.album, id)
                     Haptics.toggle()
                     app.show(saved ? "Removed from Your Library" : "Added to Your Library", symbol: saved ? "minus.circle" : "checkmark.circle")
                 }
-                IconButton(systemName: "arrow.down.circle", label: "Download album", size: 26, tint: Theme.Palette.textSecondary) {
-                    Task { await downloads.download(tracks: page.tracks) }
-                    app.show("Downloading \(a.title)", symbol: "arrow.down.circle")
+                if AppearanceStore.shared.features.downloads {
+                    IconButton(systemName: "arrow.down.circle", label: "Download album", size: 24, tint: Theme.Palette.textPrimary) {
+                        Task { await downloads.download(tracks: page.tracks) }
+                        app.show("Downloading \(a.title)", symbol: "arrow.down.circle")
+                    }
                 }
                 Menu {
                     Button { player.playNext(page.tracks) } label: { Label("Play next", systemImage: "text.line.first.and.arrowtriangle.forward") }
@@ -201,14 +293,14 @@ struct AlbumView: View {
                     Button { app.addToPlaylist = AddToPlaylistRequest(tracks: page.tracks) } label: { Label("Add to playlist…", systemImage: "text.badge.plus") }
                     NavigationLink(value: Route.artist(a.artist.id)) { Label("Go to artist", systemImage: "music.mic") }
                 } label: {
-                    Image(systemName: "ellipsis").font(.system(size: 20, weight: .bold)).foregroundStyle(Theme.Palette.textSecondary).frame(width: 44, height: 44)
+                    Image(systemName: "ellipsis").font(.system(size: 20, weight: .bold)).foregroundStyle(Theme.Palette.textPrimary).frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("More")
                 Spacer()
-                IconButton(systemName: "shuffle", label: "Shuffle", size: 24, tint: player.queue.shuffle ? Theme.Palette.accent : Theme.Palette.textSecondary) {
+                IconButton(systemName: "shuffle", label: "Shuffle", size: 22, tint: player.queue.shuffle ? Theme.Palette.accent : Theme.Palette.textPrimary) {
                     player.play(tracks: page.tracks, context: context, shuffle: true)
                 }
-                PlayCircleButton(isPlaying: player.isPlaying && player.queue.context?.id == id) {
+                PlayCircleButton(isPlaying: player.isPlaying && player.queue.context?.id == id, filledAccent: true) {
                     if player.queue.context?.id == id { player.togglePlayPause() } else { player.play(tracks: page.tracks, context: context) }
                 }
             }

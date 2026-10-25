@@ -20,7 +20,7 @@ struct ProfileView: View {
                     }
                     .accessibilityLabel("Change profile picture")
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(app.user?.displayName ?? "Listener").font(Theme.Typography.title)
+                        Text(app.user?.displayName ?? "Listener").font(Theme.Typography.media(22))
                         Text(app.user?.email ?? "").font(Theme.Typography.caption).foregroundStyle(Theme.Palette.textSecondary)
                         if app.user?.emailVerified == false {
                             Button("Verify your email") { Task { try? await app.api?.resendVerification(); app.show("Verification email sent", symbol: "envelope") } }
@@ -33,7 +33,12 @@ struct ProfileView: View {
             }
             Section {
                 NavigationLink(value: Route.settings) { Label("Settings", systemImage: "gearshape") }
-                NavigationLink(value: Route.downloads) { Label("Downloads · \(Format.bytes(downloads.usedBytes))", systemImage: "arrow.down.circle") }
+                if AppearanceStore.shared.features.downloads {
+                    NavigationLink(value: Route.downloads) { Label("Downloads · \(Format.bytes(downloads.usedBytes))", systemImage: "arrow.down.circle") }
+                }
+                if AppearanceStore.shared.features.equalizer {
+                    NavigationLink(value: Route.equalizer) { Label("Equalizer", systemImage: "slider.vertical.3") }
+                }
                 NavigationLink(value: Route.recentlyPlayed) { Label("Listening history", systemImage: "clock") }
             }
             Section {
@@ -75,6 +80,7 @@ struct SettingsView: View {
     @Environment(SyncCenter.self) private var sync
     @Environment(SettingsStore.self) private var settings
     @Environment(DownloadManager.self) private var downloads
+    @Environment(AppearanceStore.self) private var appearance
     @State private var displayName = ""
     @State private var allowExplicit = true
     @State private var historyEnabled = true
@@ -110,8 +116,17 @@ struct SettingsView: View {
                     Text(settings.values.crossfadeSeconds < 0.5 ? "Crossfade: off" : "Crossfade: \(Int(settings.values.crossfadeSeconds)) s")
                     Slider(value: $settings.values.crossfadeSeconds, in: 0...12, step: 1)
                 }
-                Toggle("Show lyrics when opening the player", isOn: $settings.values.showLyricsByDefault)
-                Toggle("Autoplay next video", isOn: $settings.values.autoplayVideos)
+                if appearance.features.lyrics {
+                    Toggle("Show lyrics when opening the player", isOn: $settings.values.showLyricsByDefault)
+                }
+                if appearance.features.videos {
+                    Toggle("Autoplay next video", isOn: $settings.values.autoplayVideos)
+                }
+                if appearance.features.equalizer {
+                    NavigationLink(value: Route.equalizer) {
+                        LabeledContent("Equalizer", value: settings.values.equalizer.enabled ? settings.values.equalizer.preset.title : "Off")
+                    }
+                }
             }
 
             Section("Subtitles") {
@@ -180,8 +195,26 @@ struct SettingsView: View {
             }
 
             Section {
-                LabeledContent("Version", value: "\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"))")
-            }
+                HStack(spacing: Theme.Spacing.m) {
+                    BrandMark(size: 44, showsName: false)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(appearance.brand.appName) \(appVersion) · Developed by \(appearance.brand.developer)")
+                            .font(Theme.Typography.media(14, weight: .semibold))
+                        Text(appearance.brand.tagline).font(Theme.Typography.caption).foregroundStyle(Theme.Palette.textSecondary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("aboutRow")
+                if let url = URL(string: appearance.brand.developerUrl) {
+                    Link(destination: url) {
+                        LabeledContent(appearance.brand.developer, value: url.host ?? url.absoluteString)
+                    }
+                }
+                if !appearance.brand.supportEmail.isEmpty, let mail = URL(string: "mailto:\(appearance.brand.supportEmail)") {
+                    Link(destination: mail) { LabeledContent("Contact", value: appearance.brand.supportEmail) }
+                }
+                LabeledContent("Build", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?")
+            } header: { Text("About") }
         }
         .streameroScreen()
         .navigationTitle("Settings")
@@ -207,6 +240,8 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: { Text("Your playlists, library and history are removed from the server. This can't be undone.") }
     }
+
+    private var appVersion: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?" }
 
     @ViewBuilder private var qualityOptions: some View {
         ForEach(StreamProfile.allCases) { p in Text(p.title).tag(p) }

@@ -143,7 +143,7 @@ struct SearchView: View {
                         HStack(spacing: Theme.Spacing.m) {
                             HStack(spacing: Theme.Spacing.s) {
                                 Image(systemName: "magnifyingglass").font(.system(size: 18, weight: .semibold))
-                                TextField("", text: $model.query, prompt: Text("What do you want to listen to?").foregroundStyle(Color(hex: 0x535353)))
+                                TextField("", text: $model.query, prompt: Text("Artists, songs, albums…").foregroundStyle(Theme.Palette.textSecondary))
                                     .font(.system(size: 15, weight: .medium))
                                     .focused($focused)
                                     .submitLabel(.search)
@@ -156,10 +156,11 @@ struct SearchView: View {
                                         .accessibilityLabel("Clear search")
                                 }
                             }
-                            .foregroundStyle(Color(hex: 0x121212))
-                            .padding(.horizontal, Theme.Spacing.m)
+                            .foregroundStyle(Theme.Palette.textPrimary)
+                            .padding(.horizontal, Theme.Spacing.l)
                             .frame(height: 46)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: Theme.Radius.m, style: .continuous))
+                            .background(Theme.Palette.surfaceHighlight, in: Capsule())
+                            .overlay(Capsule().strokeBorder(Theme.Palette.border.opacity(0.6), lineWidth: 1))
                             if focused || !model.query.isEmpty {
                                 Button("Cancel") { model.query = ""; focused = false }
                                     .font(.system(size: 15, weight: .semibold))
@@ -169,7 +170,7 @@ struct SearchView: View {
                         if !model.query.isEmpty {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: Theme.Spacing.s) {
-                                    ForEach(SearchModel.Filter.allCases) { f in
+                                    ForEach(SearchModel.Filter.allCases.filter { $0 != .videos || AppearanceStore.shared.features.videos }) { f in
                                         Chip(title: f.title, selected: model.filter == f) { model.filter = f; model.filterChanged() }
                                     }
                                 }
@@ -248,8 +249,12 @@ struct SearchView: View {
         }
         SectionHeader(title: "Browse all")
         LazyVGrid(columns: [GridItem(.flexible(), spacing: Theme.Spacing.m), GridItem(.flexible())], spacing: Theme.Spacing.m) {
-            NavigationLink(value: Route.videos) { CategoryTile(title: "Music videos", index: 2) }.buttonStyle(PressScaleStyle())
-            NavigationLink(value: Route.youtube) { CategoryTile(title: "YouTube", index: 4) }.buttonStyle(PressScaleStyle())
+            if AppearanceStore.shared.features.videos {
+                NavigationLink(value: Route.videos) { CategoryTile(title: "Music videos", index: 2) }.buttonStyle(PressScaleStyle())
+            }
+            if AppearanceStore.shared.features.youtube {
+                NavigationLink(value: Route.youtube) { CategoryTile(title: "YouTube", index: 4) }.buttonStyle(PressScaleStyle())
+            }
             ForEach(Array(model.genres.prefix(40).enumerated()), id: \.element.id) { i, g in
                 NavigationLink(value: Route.tag(kind: g.kind ?? "genre", name: g.name)) {
                     CategoryTile(title: g.name.capitalized, index: i + 5)
@@ -304,20 +309,12 @@ struct SearchView: View {
                 .buttonStyle(RowButtonStyle())
             }
         }
-        if let videos = r.videos?.items, !videos.isEmpty, all || model.filter == .videos {
+        if let videos = r.videos?.items, !videos.isEmpty, all || model.filter == .videos, AppearanceStore.shared.features.videos {
             Shelf(title: "Videos", items: videos) { v in NavigationLink(value: Route.video(v.id)) { VideoCard(video: v) }.buttonStyle(.plain) }
         }
         if let genres = r.genres?.items, !genres.isEmpty, all {
             SectionHeader(title: "Genres & moods")
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Theme.Spacing.m) {
-                    ForEach(Array(genres.enumerated()), id: \.element.id) { i, g in
-                        NavigationLink(value: Route.tag(kind: g.kind ?? "genre", name: g.name)) { CategoryTile(title: g.name.capitalized, index: i, width: 140, height: 80) }
-                            .buttonStyle(PressScaleStyle())
-                    }
-                }
-                .padding(.horizontal, Theme.Spacing.screen)
-            }
+            GenreChipRow(names: genres.map { (name: $0.name, kind: $0.kind ?? "genre") })
         }
         if model.loadingMore { ProgressView().frame(maxWidth: .infinity) }
     }

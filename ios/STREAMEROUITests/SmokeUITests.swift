@@ -12,6 +12,7 @@ final class SmokeUITests: XCTestCase {
         let signUp = app.buttons["signUpButton"]
         XCTAssertTrue(signUp.waitForExistence(timeout: 10), "Welcome screen is shown")
         XCTAssertFalse(app.textFields["serverAddressField"].exists, "Users never type a server address")
+        XCTAssertTrue(app.textFields["welcomeEmailField"].exists, "Welcome screen offers sign-up with email")
         app.buttons["logInButton"].tap()
         let email = app.textFields["emailField"]
         XCTAssertTrue(email.waitForExistence(timeout: 5))
@@ -22,5 +23,6 @@ final class SmokeUITests: XCTestCase {
         password.tap()
         password.typeText("password123")
         XCTAssertTrue(app.buttons["authSubmit"].isEnabled)
+        XCTAssertTrue(app.buttons["forgotPasswordButton"].exists, "Forgot password? is offered on the login screen")
     }
 }

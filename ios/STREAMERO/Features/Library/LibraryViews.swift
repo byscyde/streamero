@@ -63,7 +63,7 @@ struct LibraryView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.m) {
             HStack(spacing: Theme.Spacing.m) {
                 AvatarButton()
-                Text("Your Library").font(Theme.Typography.screenTitle)
+                Text("Library").font(Theme.Typography.screenTitle)
                 Spacer()
                 Button { withAnimation(Theme.Motion.quick) { searching.toggle(); if !searching { query = "" } } } label: {
                     Image(systemName: "magnifyingglass").font(.system(size: 20, weight: .semibold))
@@ -92,7 +92,7 @@ struct LibraryView: View {
                         .foregroundStyle(Theme.Palette.textPrimary)
                         .accessibilityLabel("Clear filter")
                     }
-                    ForEach(Filter.allCases.filter { filter == nil || filter == $0 }) { f in
+                    ForEach(Filter.allCases.filter { (filter == nil || filter == $0) && ($0 != .downloaded || AppearanceStore.shared.features.downloads) }) { f in
                         Chip(title: f.rawValue, selected: filter == f) { withAnimation(Theme.Motion.quick) { filter = filter == f ? nil : f } }
                     }
                 }
@@ -140,18 +140,20 @@ struct LibraryView: View {
                 }
                 .buttonStyle(RowButtonStyle())
             }
-            NavigationLink(value: Route.downloads) {
-                HStack(spacing: Theme.Spacing.m) {
-                    PinnedSymbolArtwork(symbol: "arrow.down", colour: Color(hex: 0x006450), size: 64)
-                    pinnedText("Downloaded", Format.count(downloadedCount, "item"))
+            if AppearanceStore.shared.features.downloads {
+                NavigationLink(value: Route.downloads) {
+                    HStack(spacing: Theme.Spacing.m) {
+                        PinnedSymbolArtwork(symbol: "arrow.down", colour: Color(hex: 0x2F8CFF), size: 64)
+                        pinnedText("Downloaded", Format.count(downloadedCount, "item"))
+                    }
+                    .padding(.horizontal, Theme.Spacing.screen).padding(.vertical, 6).contentShape(Rectangle())
                 }
-                .padding(.horizontal, Theme.Spacing.screen).padding(.vertical, 6).contentShape(Rectangle())
+                .buttonStyle(RowButtonStyle())
             }
-            .buttonStyle(RowButtonStyle())
-            if filter == nil {
+            if filter == nil && AppearanceStore.shared.features.videos {
                 NavigationLink(value: Route.likedVideos) {
                     HStack(spacing: Theme.Spacing.m) {
-                        PinnedSymbolArtwork(symbol: "play.rectangle.fill", colour: Color(hex: 0x8D67AB), size: 64)
+                        PinnedSymbolArtwork(symbol: "play.rectangle.fill", colour: Color(hex: 0x6A5CFF), size: 64)
                         pinnedText("Liked Videos", Format.count(summary?.likedVideos ?? library.videos.count, "video"))
                     }
                     .padding(.horizontal, Theme.Spacing.screen).padding(.vertical, 6).contentShape(Rectangle())
@@ -179,9 +181,9 @@ struct LibraryView: View {
                 }
                 .buttonStyle(PressScaleStyle())
             }
-            if showsPinned {
+            if showsPinned && AppearanceStore.shared.features.downloads {
                 NavigationLink(value: Route.downloads) {
-                    gridCell(artwork: { PinnedSymbolArtwork(symbol: "arrow.down", colour: Color(hex: 0x006450), size: $0) }, title: "Downloaded", subtitle: Format.count(downloadedCount, "item"))
+                    gridCell(artwork: { PinnedSymbolArtwork(symbol: "arrow.down", colour: Color(hex: 0x2F8CFF), size: $0) }, title: "Downloaded", subtitle: Format.count(downloadedCount, "item"))
                 }
                 .buttonStyle(PressScaleStyle())
             }
@@ -200,14 +202,14 @@ struct LibraryView: View {
     private func gridCell<A: View>(@ViewBuilder artwork: @escaping (CGFloat) -> A, title: String, subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             GeometryReader { geo in artwork(geo.size.width) }.aspectRatio(1, contentMode: .fit)
-            Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.Palette.textPrimary).lineLimit(1)
+            Text(title).font(Theme.Typography.media(13, weight: .semibold)).foregroundStyle(Theme.Palette.textPrimary).lineLimit(1)
             Text(subtitle).font(.system(size: 12)).foregroundStyle(Theme.Palette.textSecondary).lineLimit(1)
         }
     }
 
     private func pinnedText(_ title: String, _ subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(title).font(.system(size: 16)).foregroundStyle(Theme.Palette.textPrimary)
+            Text(title).font(Theme.Typography.media(16)).foregroundStyle(Theme.Palette.textPrimary)
             HStack(spacing: 4) {
                 Image(systemName: "pin.fill").font(.system(size: 10)).foregroundStyle(Theme.Palette.accent).rotationEffect(.degrees(45))
                 Text(subtitle).font(.system(size: 14)).foregroundStyle(Theme.Palette.textSecondary)
@@ -265,7 +267,7 @@ struct LibraryView: View {
 struct LikedSongsArtwork: View {
     var size: CGFloat
     var body: some View {
-        RoundedRectangle(cornerRadius: Theme.Radius.artwork, style: .continuous)
+        RoundedRectangle(cornerRadius: size > 100 ? Theme.Radius.card : Theme.Radius.artwork, style: .continuous)
             .fill(Theme.Gradients.likedSongs)
             .frame(width: size, height: size)
             .overlay(Image(systemName: "heart.fill").font(.system(size: size * 0.38)).foregroundStyle(.white))
@@ -277,7 +279,7 @@ struct PinnedSymbolArtwork: View {
     let colour: Color
     var size: CGFloat
     var body: some View {
-        RoundedRectangle(cornerRadius: Theme.Radius.artwork, style: .continuous)
+        RoundedRectangle(cornerRadius: size > 100 ? Theme.Radius.card : Theme.Radius.artwork, style: .continuous)
             .fill(colour.gradient)
             .frame(width: size, height: size)
             .overlay(Image(systemName: symbol).font(.system(size: size * 0.38, weight: .bold)).foregroundStyle(.white))
@@ -393,11 +395,11 @@ struct CollectionHeader: View {
                 if likedSongs {
                     LikedSongsArtwork(size: 230)
                 } else if artwork == nil && mosaic.isEmpty {
-                    PinnedSymbolArtwork(symbol: symbol, colour: Color(hex: 0x535353), size: 230)
+                    PinnedSymbolArtwork(symbol: symbol, colour: Color(hex: 0x3A3A40), size: 230)
                 } else if artwork == nil {
                     MosaicArtwork(urls: mosaic, size: 230)
                 } else {
-                    ArtworkView(url: artwork, size: 230)
+                    ArtworkView(url: artwork, size: 230, cornerRadius: Theme.Radius.card)
                 }
             }
             .shadow(color: .black.opacity(0.5), radius: 20, y: 10)
@@ -405,7 +407,7 @@ struct CollectionHeader: View {
             .padding(.top, Theme.Spacing.l)
             .padding(.bottom, Theme.Spacing.s)
 
-            Text(title).font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.Palette.textPrimary).lineLimit(3)
+            Text(title).font(Theme.Typography.media(26, weight: .heavy)).foregroundStyle(Theme.Palette.textPrimary).lineLimit(3)
             if let subtitle {
                 Text(subtitle).font(.system(size: 13)).foregroundStyle(Theme.Palette.textSecondary).lineLimit(4)
             }
@@ -414,12 +416,13 @@ struct CollectionHeader: View {
                     IconButton(systemName: saved ? "checkmark.circle.fill" : "plus.circle", label: saved ? "Remove from Your Library" : "Save to Your Library",
                                size: 26, tint: saved ? Theme.Palette.accent : Theme.Palette.textSecondary, action: onSave)
                 }
-                if let onDownload {
+                if let onDownload, AppearanceStore.shared.features.downloads {
                     IconButton(systemName: "arrow.down.circle", label: "Download", size: 26, tint: Theme.Palette.textSecondary, action: onDownload)
                 }
                 Spacer()
-                IconButton(systemName: "shuffle", label: "Shuffle", size: 24, tint: player.queue.shuffle ? Theme.Palette.accent : Theme.Palette.textSecondary, action: onShuffle)
-                PlayCircleButton(action: onPlay)
+                Button(action: onShuffle) { Label("Shuffle", systemImage: "shuffle") }
+                    .buttonStyle(SecondaryButtonStyle())
+                PlayCircleButton(filledAccent: true, action: onPlay)
             }
         }
         .padding(.horizontal, Theme.Spacing.screen)
@@ -429,7 +432,7 @@ struct CollectionHeader: View {
                 .padding(.top, -400) // extend the wash under the navigation bar
         )
         .task(id: artwork ?? mosaic.first) {
-            if likedSongs { tint = Color(hex: 0x5038A0); return }
+            if likedSongs { tint = Color(hex: 0x8E0F1A); return }
             if let u = artworkURL(artwork ?? mosaic.first, points: 50), let img = await ImagePipeline.shared.image(for: u, pixelSize: 50), let c = img.averageColor {
                 withAnimation { tint = Color(c) }
             }
@@ -500,7 +503,7 @@ struct PlaylistsListView: View {
         AsyncContent(load: { try await app.api?.myPlaylists(limit: 200).items ?? [] }) { (playlists: [Playlist]) in
             List {
                 Button { showCreate = true } label: {
-                    Label("New playlist", systemImage: "plus.square.fill").font(Theme.Typography.headline).foregroundStyle(Theme.Palette.accent)
+                    Label("New playlist", systemImage: "plus.square.fill").font(Theme.Typography.media(16)).foregroundStyle(Theme.Palette.accent)
                 }
                 .listRowBackground(Color.clear)
                 ForEach(playlists) { p in
