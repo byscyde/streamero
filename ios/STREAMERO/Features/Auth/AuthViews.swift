@@ -25,36 +25,89 @@ struct AuthFlowView: View {
 
     // MARK: Welcome
 
+    private var features: AppConfig.Features { AppearanceStore.shared.features }
+    private var texts: AppConfig.Texts { AppearanceStore.shared.config.texts }
+
     private var welcome: some View {
-        ZStack {
-            LinearGradient(colors: [Color(hex: 0x2A2A2A), Theme.Palette.background, .black], startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
-            VStack(spacing: Theme.Spacing.l) {
-                Spacer()
-                BrandMark(size: 56, showsName: false)
-                Text("Your music.\nYour videos.\nAll in one place.")
-                    .font(.system(size: 30, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.white)
-                    .padding(.bottom, Theme.Spacing.xl)
-                Button("Sign up free") { switchTo(.register) }
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Spacing.l) {
+                BrandMark(size: 60, showsName: false)
+                    .padding(.top, Theme.Spacing.xxl)
+                    .padding(.bottom, Theme.Spacing.l)
+                Text(texts.welcomeTitle)
+                    .font(.system(size: 22, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Theme.Palette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(texts.welcomeSubtitle)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.Palette.textPrimary.opacity(0.9))
+                    .fixedSize(horizontal: false, vertical: true)
+                AnnouncementBanner().padding(.horizontal, -Theme.Spacing.screen)
+
+                if features.appleSignIn {
+                    appleButton.padding(.top, Theme.Spacing.l)
+                }
+
+                if features.signup {
+                    HStack(spacing: Theme.Spacing.m) {
+                        Rectangle().fill(Theme.Palette.textSecondary.opacity(0.6)).frame(height: 1)
+                        Text("Or continue with email").font(.system(size: 14)).foregroundStyle(Theme.Palette.textPrimary).fixedSize()
+                        Rectangle().fill(Theme.Palette.textSecondary.opacity(0.6)).frame(height: 1)
+                    }
+                    .padding(.vertical, Theme.Spacing.s)
+                    Text("Email Address:").font(.system(size: 15)).foregroundStyle(Theme.Palette.textPrimary)
+                    TextField("", text: $email, prompt: Text("Enter your email address").foregroundStyle(Theme.Palette.textSecondary))
+                        .textContentType(.emailAddress)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.next)
+                        .onSubmit { if emailLooksValid { switchTo(.register) } }
+                        .pillField()
+                        .accessibilityLabel("Email address")
+                        .accessibilityIdentifier("welcomeEmailField")
+                    Button { switchTo(.register) } label: {
+                        HStack(spacing: Theme.Spacing.s) {
+                            Text("Next")
+                            Image(systemName: "arrow.right")
+                        }
+                        .font(.system(size: 17, weight: .medium, design: .monospaced))
+                    }
                     .buttonStyle(PrimaryButtonStyle())
+                    .accessibilityLabel("Sign up with email")
                     .accessibilityIdentifier("signUpButton")
-                appleButton
-                Button("Log in") { switchTo(.login) }
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, minHeight: 48)
+
+                    Button { switchTo(.login) } label: {
+                        HStack(spacing: 6) {
+                            Text("Already have an account?").foregroundStyle(Theme.Palette.textPrimary)
+                            Text("Log in").underline().foregroundStyle(Theme.Palette.accent)
+                        }
+                        .font(.system(size: 15, weight: .medium))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Already have an account? Log in")
                     .accessibilityIdentifier("logInButton")
+                } else {
+                    Button("Log in") { switchTo(.login) }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .padding(.top, Theme.Spacing.l)
+                        .accessibilityIdentifier("logInButton")
+                }
+
                 if let message {
-                    Text(message).font(Theme.Typography.callout).foregroundStyle(Theme.Palette.danger).multilineTextAlignment(.center)
+                    Text(message).font(Theme.Typography.callout).foregroundStyle(Theme.Palette.danger)
                 }
             }
-            .padding(.horizontal, Theme.Spacing.xxl)
+            .padding(.horizontal, Theme.Spacing.xl)
             .padding(.bottom, Theme.Spacing.xl)
-            .frame(maxWidth: 480)
+            .frame(maxWidth: 480, alignment: .leading)
+            .frame(maxWidth: .infinity)
         }
+        .scrollDismissesKeyboard(.interactively)
     }
+
+    private var emailLooksValid: Bool { email.contains("@") && email.contains(".") }
 
     private var appleButton: some View {
         SignInWithAppleButton(.continue) { request in
@@ -64,10 +117,10 @@ struct AuthFlowView: View {
         } onCompletion: { result in
             handleApple(result)
         }
-        .signInWithAppleButtonStyle(.whiteOutline)
-        .frame(height: 48)
+        .signInWithAppleButtonStyle(.black)
+        .frame(height: 52)
         .clipShape(Capsule())
-        .overlay(Capsule().stroke(Theme.Palette.textTertiary, lineWidth: 1))
+        .overlay(Capsule().strokeBorder(Theme.Palette.textPrimary.opacity(0.85), lineWidth: 1.2))
     }
 
     // MARK: Forms
@@ -76,65 +129,80 @@ struct AuthFlowView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.l) {
                 Button { switchTo(mode == .forgot ? .login : .welcome) } label: {
-                    Image(systemName: "chevron.left").font(.system(size: 20, weight: .semibold)).foregroundStyle(.white)
+                    Image(systemName: "chevron.left").font(.system(size: 20, weight: .semibold)).foregroundStyle(Theme.Palette.textPrimary)
                         .frame(width: 44, height: 44, alignment: .leading)
                 }
                 .accessibilityLabel("Back")
-                Text(title).font(.system(size: 28, weight: .bold)).padding(.bottom, Theme.Spacing.s)
+                Text(title)
+                    .font(.system(size: 26, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Theme.Palette.textPrimary)
+                    .padding(.bottom, Theme.Spacing.s)
 
                 if mode == .register {
                     label("What's your name?")
                     field("Name", text: $name, content: .name)
                 }
-                label(mode == .login ? "Email" : "What's your email?")
+                label(mode == .register ? "What's your email?" : "Email Address:")
                 field("Email", text: $email, content: .emailAddress, keyboard: .emailAddress)
                 if mode != .forgot {
                     label(mode == .register ? "Create a password" : "Password")
-                    SecureField("", text: $password)
+                    SecureField("", text: $password, prompt: Text(mode == .register ? "At least 10 characters" : "Your password").foregroundStyle(Theme.Palette.textSecondary))
                         .textContentType(mode == .register ? .newPassword : .password)
-                        .padding(Theme.Spacing.m)
-                        .background(Theme.Palette.surfaceHighlight, in: RoundedRectangle(cornerRadius: Theme.Radius.s))
+                        .pillField()
                         .accessibilityIdentifier("passwordField")
                     if mode == .register {
                         Text("Use at least 10 characters, with letters and numbers.")
                             .font(Theme.Typography.caption).foregroundStyle(Theme.Palette.textSecondary)
                     }
                 }
+                if mode == .login {
+                    Button("Forgot password?") { switchTo(.forgot) }
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.Palette.accent)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .accessibilityIdentifier("forgotPasswordButton")
+                }
+                if mode == .forgot {
+                    Text("We'll email you a link. It opens the \(AppearanceStore.shared.brand.appName) web player, where you choose a new password.")
+                        .font(Theme.Typography.callout).foregroundStyle(Theme.Palette.textSecondary)
+                }
 
                 if let message {
                     Text(message)
                         .font(Theme.Typography.callout)
-                        .foregroundStyle(isError ? Theme.Palette.danger : Theme.Palette.accent)
+                        .foregroundStyle(isError ? Theme.Palette.danger : Theme.Palette.textPrimary)
                 }
 
-                HStack {
-                    Spacer()
-                    Button(action: submit) {
-                        if busy { ProgressView().tint(.black) } else { Text(primaryTitle) }
+                Button(action: submit) {
+                    if busy {
+                        ProgressView().tint(Theme.Palette.onAccent)
+                    } else {
+                        HStack(spacing: Theme.Spacing.s) {
+                            Text(primaryTitle)
+                            Image(systemName: "arrow.right")
+                        }
+                        .font(.system(size: 17, weight: .medium, design: .monospaced))
                     }
-                    .buttonStyle(PrimaryButtonStyle(fullWidth: false))
-                    .disabled(busy || !valid)
-                    .accessibilityIdentifier("authSubmit")
-                    Spacer()
                 }
-                .padding(.top, Theme.Spacing.l)
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(busy || !valid)
+                .accessibilityIdentifier("authSubmit")
+                .padding(.top, Theme.Spacing.s)
 
-                HStack {
+                HStack(spacing: 6) {
                     Spacer()
-                    switch mode {
-                    case .login:
-                        Button("Forgot your password?") { switchTo(.forgot) }
-                    case .register:
-                        Button("Already have an account? Log in") { switchTo(.login) }
-                    default:
-                        EmptyView()
+                    if mode == .login && features.signup {
+                        Text("New here?").foregroundStyle(Theme.Palette.textPrimary)
+                        Button("Create an account") { switchTo(.register) }.foregroundStyle(Theme.Palette.accent)
+                    } else if mode == .register {
+                        Text("Already have an account?").foregroundStyle(Theme.Palette.textPrimary)
+                        Button("Log in") { switchTo(.login) }.foregroundStyle(Theme.Palette.accent)
                     }
                     Spacer()
                 }
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white)
+                .font(.system(size: 15, weight: .medium))
             }
-            .padding(.horizontal, Theme.Spacing.screen)
+            .padding(.horizontal, Theme.Spacing.xl)
             .frame(maxWidth: 520)
             .frame(maxWidth: .infinity)
         }
@@ -142,14 +210,14 @@ struct AuthFlowView: View {
     }
 
     private func label(_ text: String) -> some View {
-        Text(text).font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
+        Text(text).font(.system(size: 15)).foregroundStyle(Theme.Palette.textPrimary)
     }
 
     private var title: String {
         switch mode {
         case .welcome, .login: "Log in"
         case .register: "Create account"
-        case .forgot: "Reset your password"
+        case .forgot: "Forgot password?"
         }
     }
 
@@ -178,8 +246,7 @@ struct AuthFlowView: View {
             .keyboardType(keyboard)
             .textInputAutocapitalization(content == .name ? .words : .never)
             .autocorrectionDisabled()
-            .padding(Theme.Spacing.m)
-            .background(Theme.Palette.surfaceHighlight, in: RoundedRectangle(cornerRadius: Theme.Radius.s))
+            .pillField()
             .accessibilityIdentifier(label.lowercased() + "Field")
     }
 
@@ -236,6 +303,19 @@ struct AuthFlowView: View {
                 message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }
         }
+    }
+}
+
+extension View {
+    /// Grey pill text field (welcome / sign-in forms).
+    func pillField() -> some View {
+        self
+            .font(.system(size: 16))
+            .foregroundStyle(Theme.Palette.textPrimary)
+            .padding(.horizontal, 18)
+            .frame(minHeight: 50)
+            .background(Theme.Palette.surfaceHighlight, in: Capsule())
+            .overlay(Capsule().strokeBorder(Theme.Palette.border.opacity(0.6), lineWidth: 1))
     }
 }
 

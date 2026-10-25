@@ -19,6 +19,16 @@ enum Route: Hashable {
     case profile
     case videos
     case youtube
+    case genres
+    case equalizer
+    case section(SectionRef)
+}
+
+/// Hashable handle for a home/explore section, so "More" can push the full list.
+struct SectionRef: Hashable {
+    let section: HomeSection
+    static func == (a: SectionRef, b: SectionRef) -> Bool { a.section.id == b.section.id && a.section.items == b.section.items }
+    func hash(into hasher: inout Hasher) { hasher.combine(section.id) }
 }
 
 extension View {
@@ -42,6 +52,9 @@ extension View {
             case .profile: ProfileView()
             case .videos: VideosView()
             case .youtube: YouTubeDiscoveryView()
+            case .genres: GenresView()
+            case .equalizer: EqualizerView()
+            case .section(let ref): SectionDetailView(section: ref.section)
             }
         }
     }

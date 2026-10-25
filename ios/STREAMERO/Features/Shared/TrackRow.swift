@@ -2,10 +2,14 @@ import StreameroCore
 import SwiftUI
 
 struct TrackRow: View {
+    /// What sits at the right edge, before the ellipsis menu.
+    enum Accessory { case duration, plays, playButton, none }
+
     let track: Track
     var index: Int?
     var showArtwork = true
     var subtitle: String?
+    var accessory: Accessory = .duration
     let onPlay: () -> Void
 
     @Environment(AudioPlayer.self) private var player
@@ -22,17 +26,24 @@ struct TrackRow: View {
                         if isCurrent && player.isPlaying {
                             NowPlayingBars().frame(width: 16, height: 14)
                         } else {
-                            Text("\(index)").font(Theme.Typography.callout.monospacedDigit()).foregroundStyle(isCurrent ? Theme.Palette.accent : Theme.Palette.textTertiary)
+                            Text("\(index)").font(Theme.Typography.media(14, weight: .regular).monospacedDigit()).foregroundStyle(isCurrent ? Theme.Palette.accent : Theme.Palette.textTertiary)
                         }
                     }
                     .frame(width: 28)
                 }
                 if showArtwork {
-                    ArtworkView(url: track.artworkUrl, size: Theme.Size.rowArtwork)
+                    ZStack {
+                        ArtworkView(url: track.artworkUrl, size: Theme.Size.rowArtwork)
+                        if isCurrent && player.isPlaying {
+                            RoundedRectangle(cornerRadius: Theme.Radius.artwork, style: .continuous).fill(.black.opacity(0.45))
+                            NowPlayingBars().frame(width: 16, height: 14)
+                        }
+                    }
+                    .frame(width: Theme.Size.rowArtwork, height: Theme.Size.rowArtwork)
                 }
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(track.title)
-                        .font(.system(size: 16))
+                        .font(Theme.Typography.media(16))
                         .foregroundStyle(isCurrent ? Theme.Palette.accent : Theme.Palette.textPrimary)
                         .lineLimit(1)
                     HStack(spacing: 5) {
@@ -48,16 +59,20 @@ struct TrackRow: View {
                 }
                 Spacer(minLength: 0)
                 if library.contains(.track, track.id) {
-                    Image(systemName: "checkmark.circle.fill").font(.system(size: 16)).foregroundStyle(Theme.Palette.accent).accessibilityLabel("Liked")
+                    Image(systemName: "heart.fill").font(.system(size: 13)).foregroundStyle(Theme.Palette.accent).accessibilityLabel("Liked")
                 }
-                TrackMenu(track: track) {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(Theme.Palette.textSecondary)
-                        .frame(width: 36, height: 44)
-                        .contentShape(Rectangle())
+                accessoryView
+                if accessory != .playButton {
+                    TrackMenu(track: track) {
+                        Image(systemName: "ellipsis")
+                            .rotationEffect(.degrees(90))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(Theme.Palette.textPrimary)
+                            .frame(width: 32, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel("More options for \(track.title)")
                 }
-                .accessibilityLabel("More options for \(track.title)")
             }
             .padding(.horizontal, Theme.Spacing.screen)
             .padding(.vertical, 6)
@@ -69,11 +84,29 @@ struct TrackRow: View {
         .accessibilityLabel("\(track.title), \(track.artist.name)\(track.explicit ? ", explicit" : "")")
         .accessibilityHint("Plays the song")
     }
+
+    @ViewBuilder private var accessoryView: some View {
+        switch accessory {
+        case .duration:
+            Text(Format.time(track.duration)).font(.system(size: 14).monospacedDigit()).foregroundStyle(Theme.Palette.textSecondary)
+        case .plays:
+            if let plays = track.playCount {
+                Text("\(Format.compact(plays)) plays").font(.system(size: 14).monospacedDigit()).foregroundStyle(Theme.Palette.textSecondary)
+            } else {
+                Text(Format.time(track.duration)).font(.system(size: 14).monospacedDigit()).foregroundStyle(Theme.Palette.textSecondary)
+            }
+        case .playButton:
+            Text(Format.time(track.duration)).font(.system(size: 14).monospacedDigit()).foregroundStyle(Theme.Palette.textSecondary)
+            Image(systemName: "play.fill").font(.system(size: 20)).foregroundStyle(Theme.Palette.textPrimary).frame(width: 40, height: 44)
+        case .none:
+            EmptyView()
+        }
+    }
 }
 
 struct RowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.background(configuration.isPressed ? Theme.Palette.surfaceRaised : Color.clear)
+        configuration.label.background(configuration.isPressed ? Theme.Palette.surfaceRaised.opacity(0.7) : Color.clear)
     }
 }
 
@@ -99,7 +132,7 @@ struct TrackMenuItems: View {
         Button { player.addToQueue([track]); model.show("Added to queue", symbol: "text.append") } label: { Label("Add to queue", systemImage: "text.append") }
         Button { model.toggleLike(track) } label: { Label(liked ? "Remove from Liked Songs" : "Add to Liked Songs", systemImage: liked ? "heart.slash" : "heart") }
         Button { model.addToPlaylist = AddToPlaylistRequest(tracks: [track]) } label: { Label("Add to playlist…", systemImage: "text.badge.plus") }
-        if track.downloadable {
+        if track.downloadable && AppearanceStore.shared.features.downloads {
             if let record = downloads.record("track", track.id) {
                 Button(role: .destructive) { downloads.delete(record) } label: { Label("Remove download", systemImage: "trash") }
             } else {
@@ -111,11 +144,11 @@ struct TrackMenuItems: View {
         if let album = track.album {
             NavigationLink(value: Route.album(album.id)) { Label("Go to album", systemImage: "square.stack") }
         }
-        if let videoId = track.videoId {
+        if let videoId = track.videoId, AppearanceStore.shared.features.videos {
             NavigationLink(value: Route.video(videoId)) { Label("Watch music video", systemImage: "play.rectangle") }
         }
         if let url = Optional(ServerConfig.url.appendingPathComponent("v1/tracks/\(track.id)")) {
-            ShareLink(item: url, subject: Text(track.title), message: Text("\(track.title) — \(track.artist.name) on STREAMERO")) { Label("Share", systemImage: "square.and.arrow.up") }
+            ShareLink(item: url, subject: Text(track.title), message: Text("\(track.title) — \(track.artist.name) on \(AppearanceStore.shared.brand.appName)")) { Label("Share", systemImage: "square.and.arrow.up") }
         }
     }
 }

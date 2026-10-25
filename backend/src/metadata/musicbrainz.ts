@@ -198,7 +198,7 @@ export class MusicBrainzClient {
         albumId: rel?.id ?? null,
         year: yearOf(r['first-release-date'] ?? rel?.date),
         durationMs: r.length ?? null,
-        genres: topGenres(r.genres, r.tags),
+        genres: topGenres(r.genres?.length ? r.genres : r.tags),
         coverUrl: rel ? this.coverUrl(rel.id) : null,
         score: r.score ?? 0,
       };

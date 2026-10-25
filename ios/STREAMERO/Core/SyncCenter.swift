@@ -13,7 +13,7 @@ import UIKit
 @Observable
 final class SyncCenter {
     static let interval: Duration = .seconds(30)
-    static let backgroundTaskId = "com.streamero.sync"
+    static let backgroundTaskId = "com.scyde.streamero.sync"
 
     /// Screens use these as `.task(id:)` keys to reload when the server reports changes.
     private(set) var catalogRevision = 0
@@ -26,12 +26,14 @@ final class SyncCenter {
     @ObservationIgnored private let downloads: DownloadManager
     @ObservationIgnored private let network: NetworkMonitor
     @ObservationIgnored private let player: AudioPlayer
+    @ObservationIgnored private let appearance: AppearanceStore
     @ObservationIgnored private var loop: Task<Void, Never>?
     @ObservationIgnored private var last: SyncState?
     @ObservationIgnored private var lastDownloadCheck = Date.distantPast
     @ObservationIgnored private var running = false
 
-    init(library: LibraryStore, events: EventReporter, downloads: DownloadManager, network: NetworkMonitor, player: AudioPlayer) {
+    init(library: LibraryStore, events: EventReporter, downloads: DownloadManager, network: NetworkMonitor, player: AudioPlayer, appearance: AppearanceStore) {
+        self.appearance = appearance
         self.library = library
         self.events = events
         self.downloads = downloads
@@ -87,6 +89,8 @@ final class SyncCenter {
             libraryRevision += 1
         }
         if diff.catalogChanged { catalogRevision += 1 }
+        // Admin appearance edits (colours, texts, feature switches) arrive within one poll.
+        await appearance.syncReported(configVersion: state.configVersion, api: api)
         if Date().timeIntervalSince(lastDownloadCheck) > 600 {
             lastDownloadCheck = Date()
             await downloads.validateWithServer()

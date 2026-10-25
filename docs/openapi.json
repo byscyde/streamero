@@ -2869,6 +2869,1729 @@
         ]
       }
     },
+    "/v1/app/config": {
+      "get": {
+        "operationId": "AppConfigController_config",
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "ETag from a previous response; 304 when unchanged",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string"
+                    },
+                    "brand": {
+                      "type": "object",
+                      "properties": {
+                        "appName": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "tagline": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 120
+                        },
+                        "developer": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 60
+                        },
+                        "developerUrl": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": ""
+                            },
+                            {
+                              "type": "string",
+                              "maxLength": 200,
+                              "format": "uri"
+                            }
+                          ]
+                        },
+                        "supportEmail": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": ""
+                            },
+                            {
+                              "type": "string",
+                              "maxLength": 254,
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "appName",
+                        "tagline",
+                        "developer",
+                        "developerUrl",
+                        "supportEmail"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "theme": {
+                      "type": "object",
+                      "properties": {
+                        "accent": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "onAccent": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "background": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "surface": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "surfaceRaised": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "border": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "textPrimary": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "textSecondary": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "titleFont": {
+                          "type": "string",
+                          "enum": [
+                            "mono",
+                            "default",
+                            "rounded"
+                          ]
+                        },
+                        "cornerRadius": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 28
+                        },
+                        "genreGradients": {
+                          "type": "boolean"
+                        },
+                        "playerStyle": {
+                          "type": "string",
+                          "enum": [
+                            "artwork",
+                            "solid"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "accent",
+                        "onAccent",
+                        "background",
+                        "surface",
+                        "surfaceRaised",
+                        "border",
+                        "textPrimary",
+                        "textSecondary",
+                        "titleFont",
+                        "cornerRadius",
+                        "genreGradients",
+                        "playerStyle"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "texts": {
+                      "type": "object",
+                      "properties": {
+                        "welcomeTitle": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 120
+                        },
+                        "welcomeSubtitle": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 240
+                        },
+                        "homeGreeting": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "welcomeTitle",
+                        "welcomeSubtitle",
+                        "homeGreeting"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "home": {
+                      "type": "object",
+                      "properties": {
+                        "chips": {
+                          "minItems": 1,
+                          "maxItems": 3,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "All",
+                              "Music",
+                              "Videos"
+                            ]
+                          }
+                        },
+                        "sectionsOrder": {
+                          "maxItems": 8,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "recommended_playlists",
+                              "genres",
+                              "top_artists",
+                              "new_albums",
+                              "popular_singles",
+                              "recently_played",
+                              "made_for_you",
+                              "music_videos"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "chips",
+                        "sectionsOrder"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "features": {
+                      "type": "object",
+                      "properties": {
+                        "videos": {
+                          "type": "boolean"
+                        },
+                        "youtube": {
+                          "type": "boolean"
+                        },
+                        "lyrics": {
+                          "type": "boolean"
+                        },
+                        "downloads": {
+                          "type": "boolean"
+                        },
+                        "equalizer": {
+                          "type": "boolean"
+                        },
+                        "radio": {
+                          "type": "boolean"
+                        },
+                        "signup": {
+                          "type": "boolean"
+                        },
+                        "appleSignIn": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "videos",
+                        "youtube",
+                        "lyrics",
+                        "downloads",
+                        "equalizer",
+                        "radio",
+                        "signup",
+                        "appleSignIn"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "announcement": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 500
+                        },
+                        "style": {
+                          "type": "string",
+                          "enum": [
+                            "info",
+                            "warning",
+                            "success"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "enabled",
+                        "text",
+                        "style"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "version",
+                    "brand",
+                    "theme",
+                    "texts",
+                    "home",
+                    "features",
+                    "announcement"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified"
+          }
+        },
+        "summary": "Remote app configuration (appearance, texts, feature flags), merged over defaults. Cacheable for 30 s; ETag = version.",
+        "tags": [
+          "app"
+        ]
+      }
+    },
+    "/v1/admin/appearance": {
+      "get": {
+        "operationId": "AppearanceAdminController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string"
+                    },
+                    "brand": {
+                      "type": "object",
+                      "properties": {
+                        "appName": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "tagline": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 120
+                        },
+                        "developer": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 60
+                        },
+                        "developerUrl": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": ""
+                            },
+                            {
+                              "type": "string",
+                              "maxLength": 200,
+                              "format": "uri"
+                            }
+                          ]
+                        },
+                        "supportEmail": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": ""
+                            },
+                            {
+                              "type": "string",
+                              "maxLength": 254,
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "appName",
+                        "tagline",
+                        "developer",
+                        "developerUrl",
+                        "supportEmail"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "theme": {
+                      "type": "object",
+                      "properties": {
+                        "accent": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "onAccent": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "background": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "surface": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "surfaceRaised": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "border": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "textPrimary": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "textSecondary": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "titleFont": {
+                          "type": "string",
+                          "enum": [
+                            "mono",
+                            "default",
+                            "rounded"
+                          ]
+                        },
+                        "cornerRadius": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 28
+                        },
+                        "genreGradients": {
+                          "type": "boolean"
+                        },
+                        "playerStyle": {
+                          "type": "string",
+                          "enum": [
+                            "artwork",
+                            "solid"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "accent",
+                        "onAccent",
+                        "background",
+                        "surface",
+                        "surfaceRaised",
+                        "border",
+                        "textPrimary",
+                        "textSecondary",
+                        "titleFont",
+                        "cornerRadius",
+                        "genreGradients",
+                        "playerStyle"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "texts": {
+                      "type": "object",
+                      "properties": {
+                        "welcomeTitle": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 120
+                        },
+                        "welcomeSubtitle": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 240
+                        },
+                        "homeGreeting": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "welcomeTitle",
+                        "welcomeSubtitle",
+                        "homeGreeting"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "home": {
+                      "type": "object",
+                      "properties": {
+                        "chips": {
+                          "minItems": 1,
+                          "maxItems": 3,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "All",
+                              "Music",
+                              "Videos"
+                            ]
+                          }
+                        },
+                        "sectionsOrder": {
+                          "maxItems": 8,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "recommended_playlists",
+                              "genres",
+                              "top_artists",
+                              "new_albums",
+                              "popular_singles",
+                              "recently_played",
+                              "made_for_you",
+                              "music_videos"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "chips",
+                        "sectionsOrder"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "features": {
+                      "type": "object",
+                      "properties": {
+                        "videos": {
+                          "type": "boolean"
+                        },
+                        "youtube": {
+                          "type": "boolean"
+                        },
+                        "lyrics": {
+                          "type": "boolean"
+                        },
+                        "downloads": {
+                          "type": "boolean"
+                        },
+                        "equalizer": {
+                          "type": "boolean"
+                        },
+                        "radio": {
+                          "type": "boolean"
+                        },
+                        "signup": {
+                          "type": "boolean"
+                        },
+                        "appleSignIn": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "videos",
+                        "youtube",
+                        "lyrics",
+                        "downloads",
+                        "equalizer",
+                        "radio",
+                        "signup",
+                        "appleSignIn"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "announcement": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 500
+                        },
+                        "style": {
+                          "type": "string",
+                          "enum": [
+                            "info",
+                            "warning",
+                            "success"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "enabled",
+                        "text",
+                        "style"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "defaults": {
+                      "type": "object",
+                      "properties": {
+                        "brand": {
+                          "type": "object",
+                          "properties": {
+                            "appName": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 40
+                            },
+                            "tagline": {
+                              "type": "string",
+                              "minLength": 0,
+                              "maxLength": 120
+                            },
+                            "developer": {
+                              "type": "string",
+                              "minLength": 0,
+                              "maxLength": 60
+                            },
+                            "developerUrl": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "const": ""
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 200,
+                                  "format": "uri"
+                                }
+                              ]
+                            },
+                            "supportEmail": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "const": ""
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 254,
+                                  "format": "email",
+                                  "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "appName",
+                            "tagline",
+                            "developer",
+                            "developerUrl",
+                            "supportEmail"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "theme": {
+                          "type": "object",
+                          "properties": {
+                            "accent": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "onAccent": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "background": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "surface": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "surfaceRaised": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "border": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "textPrimary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "textSecondary": {
+                              "type": "string",
+                              "pattern": "^#[0-9A-Fa-f]{6}$"
+                            },
+                            "titleFont": {
+                              "type": "string",
+                              "enum": [
+                                "mono",
+                                "default",
+                                "rounded"
+                              ]
+                            },
+                            "cornerRadius": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 28
+                            },
+                            "genreGradients": {
+                              "type": "boolean"
+                            },
+                            "playerStyle": {
+                              "type": "string",
+                              "enum": [
+                                "artwork",
+                                "solid"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "accent",
+                            "onAccent",
+                            "background",
+                            "surface",
+                            "surfaceRaised",
+                            "border",
+                            "textPrimary",
+                            "textSecondary",
+                            "titleFont",
+                            "cornerRadius",
+                            "genreGradients",
+                            "playerStyle"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "texts": {
+                          "type": "object",
+                          "properties": {
+                            "welcomeTitle": {
+                              "type": "string",
+                              "minLength": 0,
+                              "maxLength": 120
+                            },
+                            "welcomeSubtitle": {
+                              "type": "string",
+                              "minLength": 0,
+                              "maxLength": 240
+                            },
+                            "homeGreeting": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "welcomeTitle",
+                            "welcomeSubtitle",
+                            "homeGreeting"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "home": {
+                          "type": "object",
+                          "properties": {
+                            "chips": {
+                              "minItems": 1,
+                              "maxItems": 3,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "All",
+                                  "Music",
+                                  "Videos"
+                                ]
+                              }
+                            },
+                            "sectionsOrder": {
+                              "maxItems": 8,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "recommended_playlists",
+                                  "genres",
+                                  "top_artists",
+                                  "new_albums",
+                                  "popular_singles",
+                                  "recently_played",
+                                  "made_for_you",
+                                  "music_videos"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "chips",
+                            "sectionsOrder"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "features": {
+                          "type": "object",
+                          "properties": {
+                            "videos": {
+                              "type": "boolean"
+                            },
+                            "youtube": {
+                              "type": "boolean"
+                            },
+                            "lyrics": {
+                              "type": "boolean"
+                            },
+                            "downloads": {
+                              "type": "boolean"
+                            },
+                            "equalizer": {
+                              "type": "boolean"
+                            },
+                            "radio": {
+                              "type": "boolean"
+                            },
+                            "signup": {
+                              "type": "boolean"
+                            },
+                            "appleSignIn": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "videos",
+                            "youtube",
+                            "lyrics",
+                            "downloads",
+                            "equalizer",
+                            "radio",
+                            "signup",
+                            "appleSignIn"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "announcement": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "text": {
+                              "type": "string",
+                              "minLength": 0,
+                              "maxLength": 500
+                            },
+                            "style": {
+                              "type": "string",
+                              "enum": [
+                                "info",
+                                "warning",
+                                "success"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "text",
+                            "style"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "brand",
+                        "theme",
+                        "texts",
+                        "home",
+                        "features",
+                        "announcement"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "version",
+                    "brand",
+                    "theme",
+                    "texts",
+                    "home",
+                    "features",
+                    "announcement",
+                    "defaults"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Current appearance document plus the built-in defaults",
+        "tags": [
+          "admin"
+        ]
+      },
+      "put": {
+        "operationId": "AppearanceAdminController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "brand": {
+                    "type": "object",
+                    "properties": {
+                      "appName": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                      },
+                      "tagline": {
+                        "type": "string",
+                        "minLength": 0,
+                        "maxLength": 120
+                      },
+                      "developer": {
+                        "type": "string",
+                        "minLength": 0,
+                        "maxLength": 60
+                      },
+                      "developerUrl": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "const": ""
+                          },
+                          {
+                            "type": "string",
+                            "maxLength": 200,
+                            "format": "uri"
+                          }
+                        ]
+                      },
+                      "supportEmail": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "const": ""
+                          },
+                          {
+                            "type": "string",
+                            "maxLength": 254,
+                            "format": "email",
+                            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "theme": {
+                    "type": "object",
+                    "properties": {
+                      "accent": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "onAccent": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "background": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "surface": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "surfaceRaised": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "border": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "textPrimary": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "textSecondary": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-Fa-f]{6}$"
+                      },
+                      "titleFont": {
+                        "type": "string",
+                        "enum": [
+                          "mono",
+                          "default",
+                          "rounded"
+                        ]
+                      },
+                      "cornerRadius": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 28
+                      },
+                      "genreGradients": {
+                        "type": "boolean"
+                      },
+                      "playerStyle": {
+                        "type": "string",
+                        "enum": [
+                          "artwork",
+                          "solid"
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "texts": {
+                    "type": "object",
+                    "properties": {
+                      "welcomeTitle": {
+                        "type": "string",
+                        "minLength": 0,
+                        "maxLength": 120
+                      },
+                      "welcomeSubtitle": {
+                        "type": "string",
+                        "minLength": 0,
+                        "maxLength": 240
+                      },
+                      "homeGreeting": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "home": {
+                    "type": "object",
+                    "properties": {
+                      "chips": {
+                        "minItems": 1,
+                        "maxItems": 3,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "All",
+                            "Music",
+                            "Videos"
+                          ]
+                        }
+                      },
+                      "sectionsOrder": {
+                        "maxItems": 8,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "recommended_playlists",
+                            "genres",
+                            "top_artists",
+                            "new_albums",
+                            "popular_singles",
+                            "recently_played",
+                            "made_for_you",
+                            "music_videos"
+                          ]
+                        }
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "features": {
+                    "type": "object",
+                    "properties": {
+                      "videos": {
+                        "type": "boolean"
+                      },
+                      "youtube": {
+                        "type": "boolean"
+                      },
+                      "lyrics": {
+                        "type": "boolean"
+                      },
+                      "downloads": {
+                        "type": "boolean"
+                      },
+                      "equalizer": {
+                        "type": "boolean"
+                      },
+                      "radio": {
+                        "type": "boolean"
+                      },
+                      "signup": {
+                        "type": "boolean"
+                      },
+                      "appleSignIn": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "announcement": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "text": {
+                        "type": "string",
+                        "minLength": 0,
+                        "maxLength": 500
+                      },
+                      "style": {
+                        "type": "string",
+                        "enum": [
+                          "info",
+                          "warning",
+                          "success"
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string"
+                    },
+                    "brand": {
+                      "type": "object",
+                      "properties": {
+                        "appName": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "tagline": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 120
+                        },
+                        "developer": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 60
+                        },
+                        "developerUrl": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": ""
+                            },
+                            {
+                              "type": "string",
+                              "maxLength": 200,
+                              "format": "uri"
+                            }
+                          ]
+                        },
+                        "supportEmail": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": ""
+                            },
+                            {
+                              "type": "string",
+                              "maxLength": 254,
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "appName",
+                        "tagline",
+                        "developer",
+                        "developerUrl",
+                        "supportEmail"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "theme": {
+                      "type": "object",
+                      "properties": {
+                        "accent": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "onAccent": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "background": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "surface": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "surfaceRaised": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "border": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "textPrimary": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "textSecondary": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "titleFont": {
+                          "type": "string",
+                          "enum": [
+                            "mono",
+                            "default",
+                            "rounded"
+                          ]
+                        },
+                        "cornerRadius": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 28
+                        },
+                        "genreGradients": {
+                          "type": "boolean"
+                        },
+                        "playerStyle": {
+                          "type": "string",
+                          "enum": [
+                            "artwork",
+                            "solid"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "accent",
+                        "onAccent",
+                        "background",
+                        "surface",
+                        "surfaceRaised",
+                        "border",
+                        "textPrimary",
+                        "textSecondary",
+                        "titleFont",
+                        "cornerRadius",
+                        "genreGradients",
+                        "playerStyle"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "texts": {
+                      "type": "object",
+                      "properties": {
+                        "welcomeTitle": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 120
+                        },
+                        "welcomeSubtitle": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 240
+                        },
+                        "homeGreeting": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "welcomeTitle",
+                        "welcomeSubtitle",
+                        "homeGreeting"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "home": {
+                      "type": "object",
+                      "properties": {
+                        "chips": {
+                          "minItems": 1,
+                          "maxItems": 3,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "All",
+                              "Music",
+                              "Videos"
+                            ]
+                          }
+                        },
+                        "sectionsOrder": {
+                          "maxItems": 8,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "recommended_playlists",
+                              "genres",
+                              "top_artists",
+                              "new_albums",
+                              "popular_singles",
+                              "recently_played",
+                              "made_for_you",
+                              "music_videos"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "chips",
+                        "sectionsOrder"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "features": {
+                      "type": "object",
+                      "properties": {
+                        "videos": {
+                          "type": "boolean"
+                        },
+                        "youtube": {
+                          "type": "boolean"
+                        },
+                        "lyrics": {
+                          "type": "boolean"
+                        },
+                        "downloads": {
+                          "type": "boolean"
+                        },
+                        "equalizer": {
+                          "type": "boolean"
+                        },
+                        "radio": {
+                          "type": "boolean"
+                        },
+                        "signup": {
+                          "type": "boolean"
+                        },
+                        "appleSignIn": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "videos",
+                        "youtube",
+                        "lyrics",
+                        "downloads",
+                        "equalizer",
+                        "radio",
+                        "signup",
+                        "appleSignIn"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "announcement": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 500
+                        },
+                        "style": {
+                          "type": "string",
+                          "enum": [
+                            "info",
+                            "warning",
+                            "success"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "enabled",
+                        "text",
+                        "style"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "version",
+                    "brand",
+                    "theme",
+                    "texts",
+                    "home",
+                    "features",
+                    "announcement"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a full or partial appearance document (validated; `version`/`defaults` are ignored)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/appearance/reset": {
+      "post": {
+        "operationId": "AppearanceAdminController_reset",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string"
+                    },
+                    "brand": {
+                      "type": "object",
+                      "properties": {
+                        "appName": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "tagline": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 120
+                        },
+                        "developer": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 60
+                        },
+                        "developerUrl": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": ""
+                            },
+                            {
+                              "type": "string",
+                              "maxLength": 200,
+                              "format": "uri"
+                            }
+                          ]
+                        },
+                        "supportEmail": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": ""
+                            },
+                            {
+                              "type": "string",
+                              "maxLength": 254,
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "appName",
+                        "tagline",
+                        "developer",
+                        "developerUrl",
+                        "supportEmail"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "theme": {
+                      "type": "object",
+                      "properties": {
+                        "accent": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "onAccent": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "background": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "surface": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "surfaceRaised": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "border": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "textPrimary": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "textSecondary": {
+                          "type": "string",
+                          "pattern": "^#[0-9A-Fa-f]{6}$"
+                        },
+                        "titleFont": {
+                          "type": "string",
+                          "enum": [
+                            "mono",
+                            "default",
+                            "rounded"
+                          ]
+                        },
+                        "cornerRadius": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 28
+                        },
+                        "genreGradients": {
+                          "type": "boolean"
+                        },
+                        "playerStyle": {
+                          "type": "string",
+                          "enum": [
+                            "artwork",
+                            "solid"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "accent",
+                        "onAccent",
+                        "background",
+                        "surface",
+                        "surfaceRaised",
+                        "border",
+                        "textPrimary",
+                        "textSecondary",
+                        "titleFont",
+                        "cornerRadius",
+                        "genreGradients",
+                        "playerStyle"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "texts": {
+                      "type": "object",
+                      "properties": {
+                        "welcomeTitle": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 120
+                        },
+                        "welcomeSubtitle": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 240
+                        },
+                        "homeGreeting": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "welcomeTitle",
+                        "welcomeSubtitle",
+                        "homeGreeting"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "home": {
+                      "type": "object",
+                      "properties": {
+                        "chips": {
+                          "minItems": 1,
+                          "maxItems": 3,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "All",
+                              "Music",
+                              "Videos"
+                            ]
+                          }
+                        },
+                        "sectionsOrder": {
+                          "maxItems": 8,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "recommended_playlists",
+                              "genres",
+                              "top_artists",
+                              "new_albums",
+                              "popular_singles",
+                              "recently_played",
+                              "made_for_you",
+                              "music_videos"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "chips",
+                        "sectionsOrder"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "features": {
+                      "type": "object",
+                      "properties": {
+                        "videos": {
+                          "type": "boolean"
+                        },
+                        "youtube": {
+                          "type": "boolean"
+                        },
+                        "lyrics": {
+                          "type": "boolean"
+                        },
+                        "downloads": {
+                          "type": "boolean"
+                        },
+                        "equalizer": {
+                          "type": "boolean"
+                        },
+                        "radio": {
+                          "type": "boolean"
+                        },
+                        "signup": {
+                          "type": "boolean"
+                        },
+                        "appleSignIn": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "videos",
+                        "youtube",
+                        "lyrics",
+                        "downloads",
+                        "equalizer",
+                        "radio",
+                        "signup",
+                        "appleSignIn"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "announcement": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 0,
+                          "maxLength": 500
+                        },
+                        "style": {
+                          "type": "string",
+                          "enum": [
+                            "info",
+                            "warning",
+                            "success"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "enabled",
+                        "text",
+                        "style"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "version",
+                    "brand",
+                    "theme",
+                    "texts",
+                    "home",
+                    "features",
+                    "announcement"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore the default appearance",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/sync/state": {
       "get": {
         "operationId": "SyncController_state",
@@ -4092,9 +5815,76 @@
         "tags": [
           "admin"
         ]
+      },
+      "post": {
+        "operationId": "AdminController_createUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/v1/admin/users/{id}": {
+      "get": {
+        "operationId": "AdminController_user",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      },
       "patch": {
         "operationId": "AdminController_updateUser",
         "parameters": [
@@ -4119,6 +5909,105 @@
         },
         "responses": {
           "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminController_deleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Account and personal data deleted"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/users/{id}/password": {
+      "post": {
+        "operationId": "AdminController_setUserPassword",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Password set; all of the user's sessions were revoked"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/users/{id}/send-reset": {
+      "post": {
+        "operationId": "AdminController_sendUserReset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
             "description": ""
           }
         },
@@ -4222,6 +6111,76 @@
             "bearer": []
           }
         ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/metadata/search": {
+      "get": {
+        "operationId": "MetadataController_search",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Artist and/or title (\"Artist - Title\" searches the fields separately)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataSearchDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "MusicBrainz unreachable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search MusicBrainz recordings (up to 25). 503 metadata_unavailable when MusicBrainz is unreachable.",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/metadata/apply": {
+      "post": {
+        "operationId": "MetadataController_apply",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyMetadataDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fill title/artist/album/year/genres/track number from MusicBrainz and store the Cover Art Archive front cover; returns the updated track",
         "tags": [
           "admin"
         ]
@@ -5095,6 +7054,89 @@
           "sections"
         ]
       },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "editor",
+              "admin"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "minLength": 10,
+            "description": "Omit to email the user a link to choose their own password"
+          },
+          "sendInvite": {
+            "type": "boolean",
+            "description": "Also email a set-password link when a password is given"
+          }
+        },
+        "required": [
+          "email",
+          "displayName",
+          "role"
+        ]
+      },
+      "AdminUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "editor",
+              "admin"
+            ]
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "lastActiveAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastPlayedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "displayName",
+          "role",
+          "disabled",
+          "emailVerified",
+          "createdAt",
+          "lastActiveAt",
+          "lastPlayedAt"
+        ]
+      },
       "UserPatchDto": {
         "type": "object",
         "properties": {
@@ -5108,8 +7150,126 @@
           },
           "disabled": {
             "type": "boolean"
+          },
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "emailVerified": {
+            "type": "boolean"
           }
         }
+      },
+      "SetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 10
+          }
+        },
+        "required": [
+          "password"
+        ]
+      },
+      "MetadataResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "MusicBrainz recording id (MBID)"
+          },
+          "title": {
+            "type": "string"
+          },
+          "artist": {
+            "type": "string"
+          },
+          "album": {
+            "type": "string",
+            "nullable": true
+          },
+          "albumId": {
+            "type": "string",
+            "nullable": true,
+            "description": "MusicBrainz release id"
+          },
+          "year": {
+            "type": "number",
+            "nullable": true
+          },
+          "durationMs": {
+            "type": "number",
+            "nullable": true
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coverUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Cover Art Archive front cover (250 px)"
+          },
+          "score": {
+            "type": "number",
+            "description": "MusicBrainz relevance 0..100"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "artist",
+          "album",
+          "albumId",
+          "year",
+          "durationMs",
+          "genres",
+          "coverUrl",
+          "score"
+        ]
+      },
+      "MetadataSearchDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetadataResultDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ApplyMetadataDto": {
+        "type": "object",
+        "properties": {
+          "trackId": {
+            "type": "string"
+          },
+          "recordingId": {
+            "type": "string",
+            "description": "MusicBrainz recording id"
+          },
+          "releaseId": {
+            "type": "string",
+            "description": "MusicBrainz release id (default: best release of the recording)"
+          },
+          "overwrite": {
+            "type": "boolean",
+            "description": "Replace existing values (default: only fill empty/placeholder fields and missing artwork)"
+          }
+        },
+        "required": [
+          "trackId",
+          "recordingId"
+        ]
       }
     }
   }

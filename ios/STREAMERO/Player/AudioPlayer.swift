@@ -49,6 +49,8 @@ final class AudioPlayer {
     @ObservationIgnored private let library: LibraryStore
     @ObservationIgnored private weak var downloads: DownloadManager?
     @ObservationIgnored private var api: APIClient?
+    /// 10-band EQ applied to every music item through an audio-processing tap.
+    @ObservationIgnored let equalizer: EqualizerEngine
 
     // MARK: Engine
     private final class Deck {
@@ -81,11 +83,13 @@ final class AudioPlayer {
         self.network = network
         self.events = events
         self.library = library
+        self.equalizer = EqualizerEngine(settings: settings.values.equalizer)
         for deck in decks {
             deck.player.automaticallyWaitsToMinimizeStalling = true
             deck.player.actionAtItemEnd = .advance
             deck.player.allowsExternalPlayback = true
         }
+        settings.onEqualizerChange = { [weak self] eq in self?.equalizer.update(eq) }
         configureAudioSession()
         observeSystemNotifications()
         configureRemoteCommands()
@@ -267,7 +271,7 @@ final class AudioPlayer {
         do {
             let (url, info) = try await resolve(entry)
             guard queue.current?.id == entry.id else { return } // user moved on while resolving
-            let item = makeItem(url)
+            let item = makeItem(url, equalize: wantsEqualizer(entry))
             let deck = activeDeck
             deck.player.pause()
             deck.player.removeAllItems()
@@ -293,11 +297,18 @@ final class AudioPlayer {
         }
     }
 
-    private func makeItem(_ url: URL) -> AVPlayerItem {
+    private func makeItem(_ url: URL, equalize: Bool) -> AVPlayerItem {
         let item = AVPlayerItem(asset: AVURLAsset(url: url))
         item.preferredForwardBufferDuration = network.kind == .cellular ? 20 : 45
         item.audioTimePitchAlgorithm = .timeDomain // keeps pitch when playback speed changes
+        // The tap is attached even while the EQ is off so switching it on applies instantly (bypass costs nothing).
+        if equalize { Task { [equalizer] in await equalizer.attach(to: item) } }
         return item
+    }
+
+    /// Music only: HLS video audio is not tappable (see EqualizerTap.swift).
+    private func wantsEqualizer(_ entry: QueueItem) -> Bool {
+        entry.kind == .track && queue.context?.type != "video"
     }
 
     /// Local download first (offline, no data), otherwise a signed stream URL for the current network profile.
@@ -335,7 +346,7 @@ final class AudioPlayer {
         guard let currentItem = deck.player.currentItem else { return }
         // Drop a previously prepared item (queue edited) before inserting the new one.
         for item in deck.player.items() where item !== currentItem { deck.player.remove(item) }
-        let item = makeItem(url)
+        let item = makeItem(url, equalize: wantsEqualizer(entry))
         deck.entryForItem[ObjectIdentifier(item)] = entry.id
         if deck.player.canInsert(item, after: currentItem) {
             deck.player.insert(item, after: currentItem)
@@ -484,7 +495,7 @@ final class AudioPlayer {
         let outgoing = activeDeck
         let incoming = idleDeck
         incoming.player.removeAllItems()
-        let item = makeItem(url)
+        let item = makeItem(url, equalize: wantsEqualizer(entry))
         incoming.entryForItem = [ObjectIdentifier(item): entry.id]
         incoming.player.insert(item, after: nil)
         incoming.player.volume = 0

@@ -23,8 +23,9 @@
 | Streaming | `GET /tracks/:id/stream?profile=data_saver|standard|high|lossless`, `GET /videos/:id/stream`, `GET /media/:token[/*path]` (signed, Range) |
 | Downloads | `POST /me/downloads`, `GET /me/downloads`, `POST /me/downloads/validate`, `DELETE /me/downloads/:id` |
 | YouTube | `GET /youtube/status`, `GET /youtube/search?q=` |
-| Admin (editor+) | uploads (`POST /admin/uploads`, `PUT …/chunks/:i`, `POST …/complete`), imports (`/admin/imports/url`, `/admin/imports/path` admin-only), jobs, reprocess, tracks/albums/artists/videos/subtitles CRUD, bulk track actions, lyrics, home sections, storage, activity |
-| Admin (admin) | users & roles, audit logs, system health, config |
+| App config | `GET /app/config` (public, `Cache-Control: public, max-age=30`, `ETag` = `version`, `If-None-Match` → 304); `GET /sync/state` returns `configVersion` |
+| Admin (editor+) | uploads (`POST /admin/uploads`, `PUT …/chunks/:i`, `POST …/complete`), imports (`/admin/imports/url`, `/admin/imports/path` admin-only), jobs, reprocess, tracks/albums/artists/videos/subtitles CRUD, bulk track actions, lyrics, home sections, storage, activity, metadata lookup (`GET /admin/metadata/search?q=` → `{ items }`, `POST /admin/metadata/apply`) |
+| Admin (admin) | users (`GET/POST /admin/users`, `GET/PATCH/DELETE /admin/users/:id`, `POST /admin/users/:id/password`, `POST /admin/users/:id/send-reset`), appearance (`GET/PUT /admin/appearance`, `POST /admin/appearance/reset`), audit logs, system health, config |
 | Health | `GET /healthz`, `/readyz`, `/metrics` (internal) |
 
 ### Example: play a track
@@ -39,3 +40,21 @@ Authorization: Bearer eyJ…
 ```
 
 If the source is lossy the response falls back (e.g. `"profile": "high", "delivery": { "codec": "aac", "lossless": false }`).
+
+### App config, user management and metadata lookup
+
+The binding contract is [`APP_CONFIG.md`](APP_CONFIG.md). Implementation notes:
+
+- `PUT /admin/appearance` accepts a full or partial document; `version` and `defaults` in the body are ignored, any other
+  unknown key is a `400 validation_failed` whose `details` are `[{ path: "theme.accent", message }]`. Returns the merged document.
+  Stored values that stop validating after an upgrade are dropped field by field, so clients always get a valid document.
+- Admin user endpoints return the user as listed by `GET /admin/users` (`id, email, displayName, role, disabled, emailVerified,
+  createdAt, lastActiveAt, lastPlayedAt`). `POST /admin/users` → 201 (409 `email_taken`); without `password` (or with
+  `sendInvite: true`) a set-password link valid for 3 days is emailed. `POST …/password` → 204 and revokes all sessions;
+  `POST …/send-reset` → 202 (409 `account_disabled` for disabled accounts); `DELETE` → 204, 409 `cannot_delete_self` / `last_admin`.
+- Email links use `APP_LINK_BASE` (default `https://app.streamero.net/`): `reset-password?token=…`, `verify-email?token=…`.
+- Metadata: search results carry an extra `score` (MusicBrainz relevance 0–100); `503 metadata_unavailable` when MusicBrainz
+  cannot be reached. `apply` returns the admin track plus `applied: { fields, cover: stored|kept|not_available|failed|skipped }`.
+  Without `overwrite` only empty/placeholder values are filled (`Untitled`, `Unknown Artist`, no album or the auto-created
+  single, no genres/track number/release date/artwork); with `overwrite: true` MusicBrainz values replace existing ones.
+  `METADATA_AUTOFILL=true` makes the worker do this automatically after ingestion when confidence ≥ 90 %.

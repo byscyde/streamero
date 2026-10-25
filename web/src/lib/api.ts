@@ -288,10 +288,10 @@ export class ApiClient {
   home = () => this.get<HomeFeed>('/v1/home');
   track = (id: string) => this.get<Track>(`/v1/tracks/${enc(id)}`);
   lyrics = (id: string) => this.get<LyricsResponse>(`/v1/tracks/${enc(id)}/lyrics`);
-  artists = (limit = 30, offset = 0, sort?: string) => this.get<Page<Artist>>('/v1/artists', { limit, offset, sort });
+  artists = (limit = 30, offset = 0) => this.get<Page<Artist>>('/v1/artists', { limit, offset });
   artist = (id: string) => this.get<ArtistPage>(`/v1/artists/${enc(id)}`);
   artistTracks = (id: string, limit = 50, offset = 0) => this.get<Page<Track>>(`/v1/artists/${enc(id)}/tracks`, { limit, offset });
-  albums = (limit = 30, offset = 0, sort?: string) => this.get<Page<Album>>('/v1/albums', { limit, offset, sort });
+  albums = (limit = 30, offset = 0, sort?: 'recent' | 'title') => this.get<Page<Album>>('/v1/albums', { limit, offset, sort });
   album = (id: string) => this.get<AlbumPage>(`/v1/albums/${enc(id)}`);
   videos = (limit = 30, offset = 0, genre?: string) => this.get<Page<Video>>('/v1/videos', { limit, offset, genre });
   video = (id: string) => this.get<VideoPage>(`/v1/videos/${enc(id)}`);

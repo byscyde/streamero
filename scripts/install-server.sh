@@ -102,7 +102,8 @@ BOOTSTRAP_ADMIN_EMAIL=$ADMIN_EMAIL
 BOOTSTRAP_ADMIN_PASSWORD=$ADMIN_PASSWORD
 # Optional: email (verification & password reset), e.g. smtps://user:pass@smtp.example.com:465
 SMTP_URL=
-MAIL_FROM="STREAMERO <no-reply@${DOMAIN:-localhost}>"
+MAIL_FROM="STREAMERO <no-reply@scyde.dev>"
+APP_LINK_BASE=https://app.streamero.net/
 # Optional: folder on this server to import music from (mounted read-only into the worker as /import)
 IMPORT_ALLOWED_DIRS=
 IMPORT_ALLOWED_HOSTS=

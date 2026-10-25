@@ -96,11 +96,11 @@ final class DownloadManager: NSObject {
         super.init()
         let proxy = DownloadDelegate(owner: self)
         delegateProxy = proxy
-        let cfg = URLSessionConfiguration.background(withIdentifier: "com.streamero.downloads.files")
+        let cfg = URLSessionConfiguration.background(withIdentifier: "com.scyde.streamero.downloads.files")
         cfg.sessionSendsLaunchEvents = true
         cfg.isDiscretionary = false
         fileSession = URLSession(configuration: cfg, delegate: proxy, delegateQueue: .main)
-        let assetCfg = URLSessionConfiguration.background(withIdentifier: "com.streamero.downloads.assets")
+        let assetCfg = URLSessionConfiguration.background(withIdentifier: "com.scyde.streamero.downloads.assets")
         assetSession = AVAssetDownloadURLSession(configuration: assetCfg, assetDownloadDelegate: proxy, delegateQueue: .main)
         reload()
         // Interrupted while the app was suspended/killed: those tasks are still owned by the background session.

@@ -39,6 +39,7 @@ final class AppModel {
     let downloads: DownloadManager
     let sync: SyncCenter
     let container: ModelContainer
+    let appearance: AppearanceStore
 
     struct Toast: Equatable, Identifiable {
         let id = UUID()
@@ -50,8 +51,12 @@ final class AppModel {
         if ProcessInfo.processInfo.arguments.contains("--uitesting-reset") {
             JSONFileStore.removeAll()
             KeychainTokenStore(service: AppModel.keychainService).save(nil)
+            UserDefaults.standard.removeObject(forKey: "streamero.preferencesVersion")
         }
+        appearance = AppearanceStore.shared
+        if ProcessInfo.processInfo.arguments.contains("--uitesting-reset") { appearance.resetToDefaults() }
         let container: ModelContainer
+    let appearance: AppearanceStore
         do {
             container = try ModelContainer(for: DownloadRecord.self)
         } catch {
@@ -65,7 +70,11 @@ final class AppModel {
         events = EventReporter()
         downloads = DownloadManager(container: container, settings: settings)
         player = AudioPlayer(settings: settings, network: network, events: events, library: library)
-        sync = SyncCenter(library: library, events: events, downloads: downloads, network: network, player: player)
+        sync = SyncCenter(library: library, events: events, downloads: downloads, network: network, player: player, appearance: appearance)
+        player.equalizer.featureEnabled = appearance.features.equalizer
+        appearance.onChange = { [weak self] config in
+            self?.player.equalizer.featureEnabled = config.features.equalizer
+        }
         network.onReconnect = { [weak self] in
             guard let self else { return }
             Task {
@@ -79,6 +88,8 @@ final class AppModel {
         configure(server: ServerConfig.url)
     }
 
+    /// Kept stable across the bundle-id rename (com.scyde.streamero): the Keychain item is scoped to the
+    /// app's own access group, so the service name only has to stay consistent within one install.
     static let keychainService = "com.streamero.session"
 
     private func configure(server url: URL) {
@@ -98,6 +109,8 @@ final class AppModel {
     /// Launch: sign-in screen or the main app. Works offline with cached state.
     func bootstrap() async {
         guard let api else { phase = .signedOut; return }
+        // Public appearance config first (welcome texts, colours, feature switches); cached copy is already applied.
+        Task { await appearance.refresh(api: api) }
         guard await api.auth.isSignedIn else { phase = .signedOut; return }
         phase = .signedIn
         await loadAccount()
@@ -194,30 +207,30 @@ struct AddToPlaylistRequest: Identifiable {
 }
 
 enum AppTab: String, CaseIterable, Identifiable {
-    case home, search, library, create
+    case home, search, explore, library
     var id: String { rawValue }
     var title: String {
         switch self {
         case .home: "Home"
         case .search: "Search"
-        case .library: "Your Library"
-        case .create: "Create"
+        case .explore: "Explore"
+        case .library: "Library"
         }
     }
     var symbol: String {
         switch self {
         case .home: "house"
         case .search: "magnifyingglass"
-        case .library: "books.vertical"
-        case .create: "plus"
+        case .explore: "safari"
+        case .library: "square.stack"
         }
     }
     var selectedSymbol: String {
         switch self {
         case .home: "house.fill"
         case .search: "magnifyingglass"
-        case .library: "books.vertical.fill"
-        case .create: "plus"
+        case .explore: "safari.fill"
+        case .library: "square.stack.fill"
         }
     }
 }

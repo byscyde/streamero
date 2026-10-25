@@ -1,7 +1,7 @@
 # XcodeGen spec: `xcodegen generate` produces STREAMERO.xcodeproj (not committed; see docs/IOS_BUILD.md).
 name: STREAMERO
 options:
-  bundleIdPrefix: com.streamero
+  bundleIdPrefix: com.scyde
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -34,6 +34,7 @@ targets:
       - sdk: AVKit.framework
       - sdk: MediaPlayer.framework
       - sdk: AuthenticationServices.framework
+      - sdk: MediaToolbox.framework
     entitlements:
       path: STREAMERO/STREAMERO.entitlements
       properties:
@@ -57,18 +58,18 @@ targets:
               - UISceneConfigurationName: CarPlay
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarPlaySceneDelegate
         UIBackgroundModes: [audio, fetch, processing]
-        BGTaskSchedulerPermittedIdentifiers: [com.streamero.sync]
+        BGTaskSchedulerPermittedIdentifiers: [com.scyde.streamero.sync]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         CFBundleURLTypes:
-          - CFBundleURLName: com.streamero.links
+          - CFBundleURLName: com.scyde.streamero.links
             CFBundleURLSchemes: [streamero]
         # The app only talks to the STREAMERO service over HTTPS (default App Transport Security).
         StreameroServerURL: $(STREAMERO_SERVER_URL)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(STREAMERO_BUNDLE_ID)
-        STREAMERO_BUNDLE_ID: com.example.streamero
+        STREAMERO_BUNDLE_ID: com.scyde.streamero
         STREAMERO_SERVER_URL: "https://app.streamero.net"
         PRODUCT_NAME: STREAMERO
         TARGETED_DEVICE_FAMILY: "1,2"

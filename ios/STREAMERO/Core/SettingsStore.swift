@@ -20,9 +20,25 @@ final class SettingsStore {
         var appearance: AppearanceMode = .dark
         var autoplayVideos = true
         var showLyricsByDefault = false
+        /// 10-band music equaliser (applied live by AudioPlayer).
+        var equalizer = EqualizerSettings()
+
+        enum CodingKeys: String, CodingKey {
+            case quality, crossfadeSeconds, gapless, downloadOverCellular, subtitlesEnabled, subtitleLanguages, subtitleScale
+            case subtitleBackground, preferNativeSubtitles, appearance, autoplayVideos, showLyricsByDefault, equalizer
+        }
     }
 
-    var values: Values { didSet { if values != oldValue { persist(); scheduleSync() } } }
+    var values: Values {
+        didSet {
+            guard values != oldValue else { return }
+            persist()
+            scheduleSync()
+            if values.equalizer != oldValue.equalizer { onEqualizerChange?(values.equalizer) }
+        }
+    }
+    /// AudioPlayer listens so EQ edits (local or adopted from another device) apply immediately.
+    @ObservationIgnored var onEqualizerChange: ((EqualizerSettings) -> Void)?
     private(set) var serverVersion = 0
     private var api: APIClient?
     private var syncTask: Task<Void, Never>?
@@ -62,5 +78,28 @@ final class SettingsStore {
             // Another device changed settings: adopt theirs (server is the tie-breaker).
             if case .server(_, _, _, let details) = e { adopt(server: details?["preferences"], version: details?["version"]?.doubleValue.map(Int.init)) }
         } catch {}
+    }
+}
+
+/// Lenient decoding: fields added in later versions (e.g. `equalizer`) fall back to their defaults
+/// instead of failing the whole document, so upgrading never resets a user's settings.
+extension SettingsStore.Values {
+    init(from decoder: Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        func get<T: Decodable>(_ key: CodingKeys, _ current: T) -> T { ((try? c.decodeIfPresent(T.self, forKey: key)) ?? nil) ?? current }
+        quality = get(.quality, quality)
+        crossfadeSeconds = get(.crossfadeSeconds, crossfadeSeconds)
+        gapless = get(.gapless, gapless)
+        downloadOverCellular = get(.downloadOverCellular, downloadOverCellular)
+        subtitlesEnabled = get(.subtitlesEnabled, subtitlesEnabled)
+        subtitleLanguages = get(.subtitleLanguages, subtitleLanguages)
+        subtitleScale = get(.subtitleScale, subtitleScale)
+        subtitleBackground = get(.subtitleBackground, subtitleBackground)
+        preferNativeSubtitles = get(.preferNativeSubtitles, preferNativeSubtitles)
+        appearance = get(.appearance, appearance)
+        autoplayVideos = get(.autoplayVideos, autoplayVideos)
+        showLyricsByDefault = get(.showLyricsByDefault, showLyricsByDefault)
+        equalizer = get(.equalizer, equalizer)
     }
 }

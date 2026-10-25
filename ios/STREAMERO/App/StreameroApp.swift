@@ -18,6 +18,7 @@ struct StreameroApp: App {
                 .environment(model.downloads)
                 .environment(model.network)
                 .environment(model.sync)
+                .environment(model.appearance)
                 .preferredColorScheme(model.settings.values.appearance.colorScheme)
                 .tint(Theme.Palette.accent)
                 .onOpenURL { model.handle(url: $0) }
