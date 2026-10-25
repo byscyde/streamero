@@ -5,6 +5,7 @@ import { ErrorBox, fmtDate, Loading, Modal, Pager, StatusBadge } from '../compon
 
 const ROLES: Role[] = ['user', 'editor', 'admin'];
 const PAGE = 25;
+const fmtDay = (d?: string | null) => (d ? new Date(d).toLocaleDateString() : '—');
 
 export function Users({ me }: { me: { id: string } }) {
   const [q, setQ] = useState('');
@@ -56,14 +57,14 @@ export function Users({ me }: { me: { id: string } }) {
                   <td className="wrap"><span className="strong">{u.displayName}</span>{u.id === me.id && <span className="badge" style={{ marginLeft: 6 }}>you</span>}<div className="small-text">{u.email}</div></td>
                   <td><StatusBadge status={u.role} /></td>
                   <td>{u.emailVerified ? <span className="badge ok">verified</span> : <span className="badge">unverified</span>}</td>
-                  <td>{fmtDate(u.createdAt)}</td>
-                  <td>{fmtDate(u.lastActiveAt ?? u.lastPlayedAt)}</td>
+                  <td>{fmtDay(u.createdAt)}</td>
+                  <td title={fmtDate(u.lastActiveAt ?? u.lastPlayedAt)}>{fmtDay(u.lastActiveAt ?? u.lastPlayedAt)}</td>
                   <td><StatusBadge status={u.disabled ? 'disabled' : 'active'} /></td>
                   <td>
                     <div className="row nowrap">
                       <button className="small" onClick={() => setEditing(u)}>Edit</button>
-                      <button className="small" onClick={() => setPwFor(u)}>Set password</button>
-                      <button className="small" onClick={() => sendReset(u)}>Send reset email</button>
+                      <button className="small" onClick={() => setPwFor(u)}>Password…</button>
+                      <button className="small" onClick={() => sendReset(u)}>Reset email</button>
                       {u.id !== me.id && <button className="small danger" onClick={() => setDeleting(u)}>Delete</button>}
                     </div>
                   </td>

@@ -8,6 +8,7 @@ import { downloadUrl, listMediaFiles, resolveAllowedPath } from './importers.js'
 import { JobsService } from './jobs.service.js';
 import { JobFailure, MediaProcessor, type JobContext } from './processor.js';
 import { safeFileName } from './metadata.js';
+import { MetadataService } from '../metadata/metadata.service.js';
 
 /** Executes one ingestion job and keeps its database row (status, progress, logs) up to date. */
 @Injectable()
@@ -18,6 +19,7 @@ export class JobRunner {
     private readonly processor: MediaProcessor,
     private readonly jobs: JobsService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
+    private readonly metadata: MetadataService,
   ) {}
 
   private context(jobId: string): JobContext {
@@ -55,6 +57,7 @@ export class JobRunner {
     const ctx = this.context(jobId);
     try {
       const result = await this.dispatch(job, ctx);
+      if (job.type !== 'reprocess') await this.autofill(result, ctx);
       await this.db.query(
         `UPDATE ingestion_jobs SET status = 'succeeded', progress = 100, result = $2, finished_at = now() WHERE id = $1`,
         [jobId, JSON.stringify(result ?? {})],
@@ -74,6 +77,16 @@ export class JobRunner {
       jobsProcessed.inc({ type: job.type, status: 'failed' });
       if (!(err instanceof JobFailure)) this.logger.error({ err, jobId }, 'Job crashed');
       return { ok: false, permanent: terminal, error: message };
+    }
+  }
+
+  /** METADATA_AUTOFILL: best-effort MusicBrainz lookup for new tracks with missing tags. Never fails the job. */
+  private async autofill(result: any, ctx: JobContext) {
+    if (!this.config.METADATA_AUTOFILL || !result?.trackId || result.duplicate || !result.renditions) return;
+    try {
+      await this.metadata.autofill(result.trackId, ctx.log);
+    } catch (err: any) {
+      await ctx.log(`Metadata auto-fill skipped: ${err?.message ?? err}`).catch(() => undefined);
     }
   }
 

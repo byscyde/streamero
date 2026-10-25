@@ -213,3 +213,4 @@ pre.log { background: var(--bg); border: 1px solid var(--line); border-radius: 1
 .p-label { font-size: 10px; color: var(--p-text); margin-top: 4px; }
 .p-input { display: block; background: var(--p-raised); border-radius: 99px; padding: 8px 12px; color: var(--p-text2); font-size: 10.5px; }
 .p-btn { display: block; background: var(--p-accent); color: var(--p-on-accent); border-radius: 99px; padding: 9px; text-align: center; font-weight: 600; }
+main > .callout { margin-bottom: 14px; }

@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type pg from 'pg';
@@ -594,12 +594,37 @@ export class MediaProcessor {
       const img = probe.streams.find((s) => s.codec_type === 'video');
       if (!img || !['mjpeg', 'png', 'webp'].includes(img.codec_name ?? '')) throw new JobFailure('Artwork must be a JPEG, PNG or WebP image');
       if ((img.width ?? 0) < 300 || (img.height ?? 0) < 300) throw new JobFailure('Artwork must be at least 300x300 pixels');
-      const assetId = await this.createImageAsset(file, dir, 'artwork');
-      await this.db.query(`UPDATE ${table} SET artwork_asset_id = $2 WHERE id = $1`, [input.targetId, assetId]);
-      await this.assets.deleteIfUnreferenced([target.artwork_asset_id]);
+      const assetId = await this.replaceArtwork(table, input.targetId, target.artwork_asset_id, file, dir);
       await this.storage.delete(input.incomingKey).catch(() => undefined);
       await ctx.progress(100);
       return { assetId, targetType: input.targetType, targetId: input.targetId };
+    });
+  }
+
+  /** Renders the image variants, points the entity at the new asset and removes the old one if unused. */
+  private async replaceArtwork(table: string, targetId: string, oldAssetId: string | null, file: string, dir: string) {
+    const assetId = await this.createImageAsset(file, dir, 'artwork');
+    await this.db.query(`UPDATE ${table} SET artwork_asset_id = $2 WHERE id = $1`, [targetId, assetId]);
+    await this.assets.deleteIfUnreferenced([oldAssetId]);
+    return assetId;
+  }
+
+  /**
+   * Stores artwork from bytes fetched server-side (e.g. Cover Art Archive), exactly like an uploaded
+   * artwork: content-sniffed, probed, re-encoded into the large/small JPEG variants.
+   */
+  async storeArtworkBuffer(buf: Buffer, targetType: 'album' | 'artist' | 'playlist', targetId: string): Promise<string> {
+    const table = { album: 'albums', artist: 'artists', playlist: 'playlists' }[targetType];
+    const target = await this.db.one(`SELECT id, artwork_asset_id FROM ${table} WHERE id = $1`, [targetId]);
+    if (!target) throw new JobFailure(`${targetType} not found`);
+    return this.withWorkDir(`artwork-${randomUUID()}`, async (dir) => {
+      const file = path.join(dir, 'artwork-download');
+      await writeFile(file, buf);
+      const probe = await this.probeOrFail(file);
+      const img = probe.streams.find((s) => s.codec_type === 'video');
+      if (!img || !['mjpeg', 'png', 'webp'].includes(img.codec_name ?? '')) throw new JobFailure('Artwork must be a JPEG, PNG or WebP image');
+      if ((img.width ?? 0) < 100 || (img.height ?? 0) < 100) throw new JobFailure('Artwork is too small');
+      return this.replaceArtwork(table, targetId, target.artwork_asset_id, file, dir);
     });
   }
 

@@ -88,6 +88,8 @@ public struct Track: Codable, Sendable, Hashable, Identifiable {
     public var addedAt: Date?
     public var lastPlayedAt: Date?
     public var resumePositionMs: Int?
+    /// Total plays across all listeners, when the server provides it (artist "Top songs").
+    public var playCount: Int?
 
     public init(id: String, title: String, durationMs: Int, explicit: Bool = false, trackNumber: Int? = nil, discNumber: Int? = 1,
                 genres: [String] = [], moods: [String] = [], artist: ArtistRef, album: AlbumRef? = nil, artworkUrl: URL? = nil,

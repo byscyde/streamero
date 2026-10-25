@@ -26,6 +26,25 @@ public enum Format {
         return i == 0 ? "\(count) B" : String(format: v >= 100 ? "%.0f %@" : "%.1f %@", v, units[i])
     }
 
+    /// Compact count with three significant digits: 950, 7.92K, 23.1M, 118M, 3.6B.
+    public static func compact(_ n: Int) -> String {
+        let v = Double(abs(n))
+        let units: [(Double, String)] = [(1e9, "B"), (1e6, "M"), (1e3, "K")]
+        guard let (scale, suffix) = units.first(where: { v >= $0.0 }) else { return String(n) }
+        var x = v / scale
+        // Rounding can carry into the next unit (999.95K → 1M).
+        if x >= 999.5, suffix != "B" { return compact(n.signum() * Int(scale * 1000)) }
+        let decimals = x < 10 ? 2 : x < 100 ? 1 : 0
+        let factor = pow(10, Double(decimals))
+        x = (x * factor).rounded() / factor
+        var text = String(format: "%.\(decimals)f", x)
+        if text.contains(".") {
+            while text.hasSuffix("0") { text.removeLast() }
+            if text.hasSuffix(".") { text.removeLast() }
+        }
+        return (n < 0 ? "-" : "") + text + suffix
+    }
+
     public static func count(_ n: Int, _ singular: String, _ plural: String? = nil) -> String {
         "\(n) \(n == 1 ? singular : (plural ?? singular + "s"))"
     }

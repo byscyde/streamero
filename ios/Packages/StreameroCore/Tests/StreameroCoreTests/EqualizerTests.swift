@@ -140,4 +140,15 @@ final class EqualizerTests: XCTestCase {
         }
         for (x, y) in zip(whole, chunked) { XCTAssertEqual(x, y, accuracy: 1e-6) }
     }
+
+    func testCompactCounts() {
+        XCTAssertEqual(Format.compact(950), "950")
+        XCTAssertEqual(Format.compact(7_920_000), "7.92M")
+        XCTAssertEqual(Format.compact(23_100_000), "23.1M")
+        XCTAssertEqual(Format.compact(118_000_000), "118M")
+        XCTAssertEqual(Format.compact(3_600_000_000), "3.6B")
+        XCTAssertEqual(Format.compact(180_000_000_000), "180B")
+        XCTAssertEqual(Format.compact(1_000), "1K")
+        XCTAssertEqual(Format.compact(999_999), "1M")
+    }
 }

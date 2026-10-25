@@ -18,11 +18,10 @@ struct ArtworkView: View {
             if let image {
                 Image(uiImage: image).resizable().scaledToFill().transition(.opacity)
             } else {
-                Theme.Palette.surfaceHighlight
+                Theme.Palette.surfaceRaised
                 Image(systemName: placeholderSymbol)
                     .font(.system(size: size * 0.32, weight: .semibold))
-                    .foregroundStyle(Theme.Gradients.brand)
-                    .opacity(0.8)
+                    .foregroundStyle(Theme.Palette.textTertiary)
             }
         }
         .frame(width: size, height: size)
@@ -43,7 +42,7 @@ struct ArtworkView: View {
 /// Fluid-width artwork (fills its container, square).
 struct FlexibleArtwork: View {
     let url: URL?
-    var cornerRadius: CGFloat = Theme.Radius.l
+    var cornerRadius: CGFloat = Theme.Radius.card
     var symbol = "music.note"
     var body: some View {
         GeometryReader { geo in
@@ -57,6 +56,7 @@ struct FlexibleArtwork: View {
 struct MosaicArtwork: View {
     let urls: [URL]
     let size: CGFloat
+    var cornerRadius: CGFloat = Theme.Radius.artwork
     var body: some View {
         if urls.count >= 4 {
             let half = size / 2
@@ -64,52 +64,70 @@ struct MosaicArtwork: View {
                 HStack(spacing: 0) { ArtworkView(url: urls[0], size: half, cornerRadius: 0); ArtworkView(url: urls[1], size: half, cornerRadius: 0) }
                 HStack(spacing: 0) { ArtworkView(url: urls[2], size: half, cornerRadius: 0); ArtworkView(url: urls[3], size: half, cornerRadius: 0) }
             }
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.artwork, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         } else {
-            ArtworkView(url: urls.first, size: size, placeholderSymbol: "music.note.list")
+            ArtworkView(url: urls.first, size: size, cornerRadius: cornerRadius, placeholderSymbol: "music.note.list")
         }
     }
 }
 
 // MARK: - Buttons
 
+/// Filled accent pill ("Follow", "Next →", "Log in").
 struct PrimaryButtonStyle: ButtonStyle {
     var fullWidth = true
+    var height: CGFloat = 52
     @Environment(\.isEnabled) private var enabled
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 16, weight: .bold))
+            .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(Theme.Palette.onAccent)
-            .padding(.vertical, 14)
             .padding(.horizontal, Theme.Spacing.xl)
-            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: 48)
-            .background(Theme.Palette.accent.opacity(enabled ? 1 : 0.4), in: Capsule())
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: height)
+            .background(Theme.Palette.accent.opacity(enabled ? 1 : 0.45), in: Capsule())
+            .contentShape(Capsule())
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(Theme.Motion.quick, value: configuration.isPressed)
     }
 }
 
-/// Outlined pill (e.g. "Follow", "Continue with Apple").
+/// Outlined pill ("Shuffle", "Radio", "Continue with Apple").
 struct SecondaryButtonStyle: ButtonStyle {
     var fullWidth = false
+    var height: CGFloat = 40
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 14, weight: .bold))
+            .font(.system(size: 15, weight: .medium))
             .foregroundStyle(Theme.Palette.textPrimary)
-            .padding(.vertical, 8)
             .padding(.horizontal, 16)
-            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: 32)
-            .overlay(Capsule().strokeBorder(Theme.Palette.textTertiary, lineWidth: 1))
+            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: height)
+            .overlay(Capsule().strokeBorder(Theme.Palette.textPrimary.opacity(0.85), lineWidth: 1.2))
             .contentShape(Capsule())
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.8 : 1)
             .animation(Theme.Motion.quick, value: configuration.isPressed)
     }
 }
 
-/// The big green play button on collection headers.
+/// Small grey outline pill used for "More" on section headers.
+struct MorePillStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(Theme.Palette.textSecondary)
+            .padding(.horizontal, 12)
+            .frame(height: 26)
+            .overlay(Capsule().strokeBorder(Theme.Palette.border, lineWidth: 1))
+            .contentShape(Capsule())
+            .opacity(configuration.isPressed ? 0.6 : 1)
+    }
+}
+
+/// White circular play button with a black glyph (collection headers, release cards, Now Playing).
 struct PlayCircleButton: View {
     var isPlaying = false
     var size: CGFloat = 56
+    var filledAccent = false
     let action: () -> Void
     var body: some View {
         Button {
@@ -118,10 +136,10 @@ struct PlayCircleButton: View {
         } label: {
             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                 .font(.system(size: size * 0.38, weight: .black))
-                .foregroundStyle(Theme.Palette.onAccent)
+                .foregroundStyle(filledAccent ? Theme.Palette.onAccent : Theme.Palette.onPlayButton)
                 .offset(x: isPlaying ? 0 : size * 0.03)
                 .frame(width: size, height: size)
-                .background(Theme.Palette.accent, in: Circle())
+                .background(filledAccent ? Theme.Palette.accent : Theme.Palette.playButton, in: Circle())
         }
         .buttonStyle(PressScaleStyle())
         .accessibilityLabel(isPlaying ? "Pause" : "Play")
@@ -131,7 +149,7 @@ struct PlayCircleButton: View {
 struct PressScaleStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.94 : 1)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
             .opacity(configuration.isPressed ? 0.85 : 1)
             .animation(Theme.Motion.quick, value: configuration.isPressed)
     }
@@ -146,7 +164,7 @@ struct IconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: size, weight: .semibold))
+                .font(.system(size: size, weight: .regular))
                 .foregroundStyle(tint)
                 .frame(minWidth: Theme.Size.minTapTarget, minHeight: Theme.Size.minTapTarget)
                 .contentShape(Rectangle())
@@ -158,22 +176,31 @@ struct IconButton: View {
 
 // MARK: - Text & badges
 
+/// "Genres ……… (More)": bold section title with an optional outline "More" pill.
 struct SectionHeader: View {
     let title: String
     var subtitle: String?
     var action: (title: String, run: () -> Void)?
+    /// Shows the "More" pill linking to this route.
+    var more: Route?
+
     var body: some View {
-        HStack(alignment: .lastTextBaseline) {
+        HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
                 if let subtitle { Text(subtitle).font(Theme.Typography.caption).foregroundStyle(Theme.Palette.textSecondary) }
-                Text(title).font(.system(size: 22, weight: .bold)).foregroundStyle(Theme.Palette.textPrimary)
+                Text(title).font(Theme.Typography.section).foregroundStyle(Theme.Palette.textPrimary).lineLimit(1)
             }
-            Spacer()
-            if let action {
-                Button(action.title, action: action.run).font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.Palette.textSecondary)
+            Spacer(minLength: Theme.Spacing.s)
+            if let more {
+                NavigationLink(value: more) { Text("More") }
+                    .buttonStyle(MorePillStyle())
+                    .accessibilityLabel("More \(title)")
+            } else if let action {
+                Button(action.title, action: action.run).buttonStyle(MorePillStyle())
             }
         }
         .padding(.horizontal, Theme.Spacing.screen)
+        .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isHeader)
     }
 }
@@ -198,12 +225,12 @@ struct QualityBadge: View {
             .tracking(0.6)
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
-            .foregroundStyle(lossless ? Theme.Palette.turquoise : Theme.Palette.textSecondary)
-            .overlay(Capsule().strokeBorder(lossless ? Theme.Palette.turquoise : Theme.Palette.separator, lineWidth: 1))
+            .foregroundStyle(lossless ? Theme.Palette.accent : Theme.Palette.textSecondary)
+            .overlay(Capsule().strokeBorder(lossless ? Theme.Palette.accent : Theme.Palette.border, lineWidth: 1))
     }
 }
 
-/// Filter pill (All / Music / Videos, Playlists / Artists / Albums…).
+/// Filter pill (All / Music / Videos, Playlists / Artists / Albums…). Selected = white pill, black text.
 struct Chip: View {
     let title: String
     var selected = false
@@ -214,34 +241,68 @@ struct Chip: View {
             action()
         } label: {
             Text(title)
-                .font(.system(size: 14, weight: .medium))
-                .padding(.horizontal, 14)
-                .frame(height: 32)
-                .foregroundStyle(selected ? Theme.Palette.onAccent : Theme.Palette.textPrimary)
-                .background(selected ? Theme.Palette.accent : Theme.Palette.surfaceHighlight, in: Capsule())
+                .font(.system(size: 15, weight: selected ? .semibold : .regular))
+                .padding(.horizontal, 18)
+                .frame(height: 36)
+                .foregroundStyle(selected ? Color.black : Theme.Palette.textSecondary)
+                .background(selected ? Color.white : Theme.Palette.surfaceRaised.opacity(0.0001), in: Capsule())
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
-/// Circular avatar button that opens the profile menu (top-left of the main screens).
+/// Colourful gradient genre pill (or a plain grey pill when `theme.genreGradients` is off).
+struct GenreChip: View {
+    let name: String
+    var height: CGFloat = 40
+    var body: some View {
+        let gradients = AppearanceStore.shared.config.theme.genreGradients
+        Text(name)
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .padding(.horizontal, 16)
+            .frame(height: height)
+            .background {
+                if gradients {
+                    Capsule().fill(Theme.Gradients.genre(name))
+                } else {
+                    Capsule().fill(Theme.Palette.surfaceRaised)
+                }
+            }
+            .overlay(Capsule().strokeBorder(.white.opacity(gradients ? 0.35 : 0.12), lineWidth: 1))
+            .accessibilityLabel(name)
+    }
+}
+
+/// Circular avatar that opens the profile menu (top-left of the main screens).
 struct AvatarButton: View {
     @Environment(AppModel.self) private var app
-    var size: CGFloat = 32
+    var size: CGFloat = 36
     var body: some View {
         Button { withAnimation(Theme.Motion.standard) { app.isMenuOpen = true } } label: {
-            ZStack {
-                Circle().fill(Theme.Palette.accent)
-                Text(String(app.user?.displayName.first ?? "S").uppercased())
-                    .font(.system(size: size * 0.45, weight: .bold))
-                    .foregroundStyle(Theme.Palette.onAccent)
-                if let url = app.avatarURL { ArtworkView(url: url, size: size, circular: true) }
-            }
-            .frame(width: size, height: size)
+            AvatarImage(size: size)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Profile and settings")
+    }
+}
+
+struct AvatarImage: View {
+    @Environment(AppModel.self) private var app
+    var size: CGFloat = 36
+    var body: some View {
+        ZStack {
+            Circle().fill(Theme.Gradients.brand)
+            Text(String(app.user?.displayName.first ?? "S").uppercased())
+                .font(.system(size: size * 0.45, weight: .bold, design: .monospaced))
+                .foregroundStyle(.white)
+            if let url = app.avatarURL { ArtworkView(url: url, size: size, circular: true) }
+        }
+        .frame(width: size, height: size)
+        .overlay(Circle().strokeBorder(.white.opacity(0.15), lineWidth: 1))
     }
 }
 
@@ -305,7 +366,7 @@ struct ErrorStateView: View {
             Image(systemName: offline ? "wifi.slash" : "exclamationmark.triangle")
                 .font(.system(size: 40, weight: .semibold))
                 .foregroundStyle(Theme.Gradients.brand)
-            Text(offline ? "You're offline" : "Something went wrong").font(Theme.Typography.headline)
+            Text(offline ? "You're offline" : "Something went wrong").font(Theme.Typography.media(18))
             Text(error.localizedDescription)
                 .font(Theme.Typography.callout)
                 .foregroundStyle(Theme.Palette.textSecondary)
@@ -331,7 +392,7 @@ struct EmptyStateView: View {
                 .font(.system(size: 44, weight: .semibold))
                 .foregroundStyle(Theme.Gradients.brand)
                 .padding(.bottom, Theme.Spacing.s)
-            Text(title).font(Theme.Typography.title).multilineTextAlignment(.center)
+            Text(title).font(Theme.Typography.media(20)).multilineTextAlignment(.center)
             Text(message).font(Theme.Typography.callout).foregroundStyle(Theme.Palette.textSecondary).multilineTextAlignment(.center)
             if let actionTitle, let action {
                 Button(actionTitle, action: action).buttonStyle(PrimaryButtonStyle(fullWidth: false)).padding(.top, Theme.Spacing.s)
@@ -403,5 +464,46 @@ struct OfflineBanner: View {
             .padding(.vertical, 6)
             .background(Theme.Palette.surfaceHighlight, in: Capsule())
             .accessibilityAddTraits(.isStaticText)
+    }
+}
+
+/// Admin announcement from the remote config (Home and the welcome screen).
+struct AnnouncementBanner: View {
+    @State private var dismissedText: String?
+
+    var body: some View {
+        let a = AppearanceStore.shared.config.announcement
+        if a.isVisible && dismissedText != a.text {
+            HStack(alignment: .top, spacing: Theme.Spacing.s) {
+                Image(systemName: symbol(a.style)).font(.system(size: 15, weight: .semibold)).foregroundStyle(tint(a.style))
+                Text(a.text).font(Theme.Typography.callout).foregroundStyle(Theme.Palette.textPrimary).frame(maxWidth: .infinity, alignment: .leading)
+                Button { withAnimation(Theme.Motion.quick) { dismissedText = a.text } } label: {
+                    Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundStyle(Theme.Palette.textSecondary).frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Dismiss announcement")
+            }
+            .padding(Theme.Spacing.m)
+            .background(tint(a.style).opacity(0.14), in: RoundedRectangle(cornerRadius: Theme.Radius.l, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.l, style: .continuous).strokeBorder(tint(a.style).opacity(0.45), lineWidth: 1))
+            .padding(.horizontal, Theme.Spacing.screen)
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private func symbol(_ style: AppConfig.AnnouncementStyle) -> String {
+        switch style {
+        case .info: "megaphone.fill"
+        case .warning: "exclamationmark.triangle.fill"
+        case .success: "checkmark.seal.fill"
+        }
+    }
+
+    private func tint(_ style: AppConfig.AnnouncementStyle) -> Color {
+        switch style {
+        case .info: Theme.Palette.blue
+        case .warning: Theme.Palette.warning
+        case .success: Theme.Palette.accent
+        }
     }
 }
