@@ -179,3 +179,118 @@ export function formatDuration(ms: number) {
   const sec = String(s % 60).padStart(2, '0');
   return h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Typed endpoints (see docs/APP_CONFIG.md). Kept as thin wrappers so pages and tests share one definition.
+
+export type Role = 'user' | 'editor' | 'admin';
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  displayName: string;
+  role: Role;
+  disabled: boolean;
+  emailVerified: boolean;
+  createdAt: string;
+  lastActiveAt?: string | null;
+  lastPlayedAt?: string | null;
+}
+
+export interface CreateUserBody {
+  email: string;
+  displayName: string;
+  role: Role;
+  password?: string;
+  sendInvite?: boolean;
+}
+
+export interface UpdateUserBody {
+  email?: string;
+  displayName?: string;
+  role?: Role;
+  disabled?: boolean;
+  emailVerified?: boolean;
+}
+
+export interface MetadataResult {
+  id: string;
+  title: string;
+  artist: string;
+  album?: string | null;
+  albumId?: string | null;
+  year?: number | string | null;
+  durationMs?: number | null;
+  genres?: string[];
+  coverUrl?: string | null;
+}
+
+const enc = encodeURIComponent;
+
+/** The search endpoint returns "up to 25 recordings"; accept a bare array or a `{ items | results }` wrapper. */
+export function unwrapList<T>(r: unknown): T[] {
+  if (Array.isArray(r)) return r as T[];
+  const o = r as { items?: T[]; results?: T[] } | null | undefined;
+  return o?.items ?? o?.results ?? [];
+}
+
+export const adminApi = {
+  users: {
+    list: (q: { q?: string; role?: string; limit?: number; offset?: number }) => api.get<Page<AdminUser>>('/v1/admin/users', q),
+    create: (body: CreateUserBody) => api.post<AdminUser>('/v1/admin/users', body),
+    update: (id: string, body: UpdateUserBody) => api.patch<AdminUser>(`/v1/admin/users/${enc(id)}`, body),
+    setPassword: (id: string, password: string) => api.post<void>(`/v1/admin/users/${enc(id)}/password`, { password }),
+    sendReset: (id: string) => api.post<void>(`/v1/admin/users/${enc(id)}/send-reset`),
+    remove: (id: string) => api.del<void>(`/v1/admin/users/${enc(id)}`),
+  },
+  appearance: {
+    get: () => api.get<any>('/v1/admin/appearance'),
+    save: (doc: unknown) => api.put<any>('/v1/admin/appearance', doc),
+    reset: () => api.post<any>('/v1/admin/appearance/reset'),
+  },
+  metadata: {
+    search: async (q: string) => unwrapList<MetadataResult>(await api.get<unknown>('/v1/admin/metadata/search', { q })),
+    apply: (body: { trackId: string; recordingId: string; releaseId?: string; overwrite?: boolean }) => api.post<any>('/v1/admin/metadata/apply', body),
+  },
+  auth: {
+    changePassword: (currentPassword: string, newPassword: string) => api.post<void>('/v1/auth/change-password', { currentPassword, newPassword }),
+    forgotPassword: (email: string) => request<{ status?: string } | undefined>('POST', '/v1/auth/forgot-password', { email }, false),
+  },
+};
+
+/** Server password policy: at least 10 characters with letters and digits. Returns a problem or null. */
+export function passwordProblem(pw: string): string | null {
+  if (pw.length < 10) return 'Use at least 10 characters.';
+  if (!/\p{L}/u.test(pw) || !/\d/.test(pw)) return 'Use both letters and digits.';
+  if (pw.length > 256) return 'Password is too long.';
+  return null;
+}
+
+/**
+ * The dashboard CSP only allows same-origin images (`img-src 'self' data: blob:`), so remote cover URLs
+ * (e.g. coverartarchive.org) would be blocked. Returns true only for URLs the browser may load.
+ */
+export function isDisplayableImage(url: string | null | undefined, origin = typeof location !== 'undefined' ? location.origin : ''): boolean {
+  if (!url) return false;
+  if (url.startsWith('data:image/') || url.startsWith('blob:')) return true;
+  if (url.startsWith('//')) return false;
+  if (url.startsWith('/')) return true;
+  try {
+    return new URL(url).origin === origin;
+  } catch {
+    return false;
+  }
+}
+
+/** Only the fields that changed (strings trimmed), so PATCH requests and audit entries stay minimal. */
+export function userPatch(user: AdminUser, form: Required<Pick<UpdateUserBody, 'email' | 'displayName' | 'role' | 'disabled' | 'emailVerified'>>): UpdateUserBody {
+  const out: UpdateUserBody = {};
+  const email = form.email.trim();
+  const displayName = form.displayName.trim();
+  if (email !== user.email) out.email = email;
+  if (displayName !== user.displayName) out.displayName = displayName;
+  if (form.role !== user.role) out.role = form.role;
+  if (form.disabled !== user.disabled) out.disabled = form.disabled;
+  if (form.emailVerified !== user.emailVerified) out.emailVerified = form.emailVerified;
+  return out;
+}

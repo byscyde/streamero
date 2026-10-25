@@ -1,0 +1,17 @@
+{
+  "name": "STREAMERO",
+  "short_name": "STREAMERO",
+  "description": "Your Sound. Your Screen. Your World. Music and video streaming by SCYDE.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#E31E2D",
+  "background_color": "#0E0E10",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

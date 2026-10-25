@@ -4,17 +4,24 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { createHash } from 'node:crypto';
 import type { AuthUser } from '../common/auth-user.js';
 import { CurrentUser } from '../common/decorators.js';
+import { AppConfigModule } from '../appconfig/appconfig.module.js';
+import { AppConfigService } from '../appconfig/appconfig.service.js';
 import { DbService } from '../db/db.service.js';
 
 /**
  * Cheap change detection for clients that poll (the app checks every 30 s): returns opaque version
- * strings for the shared catalog and for the caller's own library. Clients refetch only what changed.
+ * strings for the shared catalog, the caller's own library and the remote app config (`configVersion`, equal to
+ * the `version` of GET /v1/app/config). Clients refetch only what changed.
  */
 @Injectable()
 export class SyncService {
-  constructor(private readonly db: DbService) {}
+  constructor(
+    private readonly db: DbService,
+    private readonly appConfig: AppConfigService,
+  ) {}
 
   async state(userId: string) {
+    const configVersion = this.appConfig.version();
     const row = await this.db.one(
       `SELECT
         (SELECT concat_ws('|',
@@ -42,7 +49,7 @@ export class SyncService {
       [userId],
     );
     const h = (s: string) => createHash('sha256').update(s ?? '').digest('base64url').slice(0, 16);
-    return { catalogVersion: h(row.catalog), libraryVersion: h(row.library), serverTime: new Date().toISOString() };
+    return { catalogVersion: h(row.catalog), libraryVersion: h(row.library), configVersion: await configVersion, serverTime: new Date().toISOString() };
   }
 }
 
@@ -59,5 +66,5 @@ export class SyncController {
   }
 }
 
-@Module({ controllers: [SyncController], providers: [SyncService] })
+@Module({ imports: [AppConfigModule], controllers: [SyncController], providers: [SyncService] })
 export class SyncModule {}

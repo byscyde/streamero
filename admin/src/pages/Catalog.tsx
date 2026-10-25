@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api, formatBytes, formatDuration, type Page, uploadFile } from '../api';
 import { useAsync, useDebounced, useToast } from '../hooks';
 import { ConfirmButton, Loading, Modal, Pager, StatusBadge } from '../components/ui';
+import { MetadataDialog } from './Metadata';
 
 function useListing(path: string, extra: Record<string, string> = {}) {
   const [q, setQ] = useState('');
@@ -82,9 +83,10 @@ export function Tracks() {
 }
 
 function TrackEditor({ id, onClose }: { id: string; onClose: () => void }) {
-  const { data } = useAsync(() => api.get<any>(`/v1/admin/tracks/${id}`), [id]);
+  const { data, reload } = useAsync(() => api.get<any>(`/v1/admin/tracks/${id}`), [id]);
   const [form, setForm] = useState<any>(null);
   const [lyrics, setLyrics] = useState<string | null>(null);
+  const [lookup, setLookup] = useState(false);
   const { notify, fail } = useToast();
   if (data && !form) {
     setForm({ title: data.title, artistName: data.artist.name, trackNumber: data.trackNumber ?? '', discNumber: data.discNumber ?? 1, explicit: data.explicit, downloadable: data.downloadable, genres: data.genres.join(', '), moods: data.moods.join(', '), isrc: data.isrc ?? '' });
@@ -110,6 +112,11 @@ function TrackEditor({ id, onClose }: { id: string; onClose: () => void }) {
     <Modal title="Edit track" onClose={onClose}>
       {!form ? <p className="muted">Loading…</p> : (
         <div style={{ display: 'grid', gap: 12 }}>
+          <div className="row">
+            {data.artworkUrl ? <img className="thumb lg" src={`${data.artworkUrl}?size=small`} alt="" /> : null}
+            <span className="small-text grow">Album: {data.album?.title ?? '—'}</span>
+            <button className="small" onClick={() => setLookup(true)}>Find metadata</button>
+          </div>
           <div className="form-grid">
             <label className="field">Title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
             <label className="field">Artist<input value={form.artistName} onChange={(e) => setForm({ ...form, artistName: e.target.value })} /></label>
@@ -135,6 +142,13 @@ function TrackEditor({ id, onClose }: { id: string; onClose: () => void }) {
           </label>
           <div className="row"><span className="spacer" /><button onClick={onClose}>Cancel</button><button className="primary" onClick={save}>Save</button></div>
         </div>
+      )}
+      {lookup && data && (
+        <MetadataDialog
+          track={{ id, title: data.title, artistName: data.artist?.name ?? '' }}
+          onClose={() => setLookup(false)}
+          onApplied={async () => { setLookup(false); await reload(); setForm(null); setLyrics(null); }}
+        />
       )}
     </Modal>
   );

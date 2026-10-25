@@ -48,8 +48,17 @@ export const configSchema = z
     /** Development/testing only: allow URL imports from private/loopback addresses. */
     IMPORT_ALLOW_PRIVATE_NETWORKS: bool.default(false),
     SMTP_URL: z.string().optional().default(''),
-    MAIL_FROM: z.string().default('STREAMERO <no-reply@streamero.local>'),
-    APP_LINK_BASE: z.string().default('streamero://'),
+    MAIL_FROM: z.string().default('STREAMERO <no-reply@scyde.dev>'),
+    /** Base URL of the web player; email links become <base>reset-password?token=… and <base>verify-email?token=… */
+    APP_LINK_BASE: z
+      .string()
+      .default('https://app.streamero.net/')
+      .transform((v) => (v.endsWith('/') ? v : `${v}/`)),
+    /** Worker looks up MusicBrainz metadata for freshly ingested tracks with missing tags (confidence >= 90 %). */
+    METADATA_AUTOFILL: bool.default(false),
+    /** MusicBrainz / Cover Art Archive endpoints (overridable for mirrors). */
+    MUSICBRAINZ_BASE_URL: z.string().url().default('https://musicbrainz.org/ws/2'),
+    COVERART_BASE_URL: z.string().url().default('https://coverartarchive.org'),
     APPLE_CLIENT_IDS: csv,
     YOUTUBE_API_KEY: z.string().optional().default(''),
     BOOTSTRAP_ADMIN_EMAIL: z.string().email().optional(),

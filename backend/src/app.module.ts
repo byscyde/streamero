@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { AdminModule } from './admin/admin.module.js';
+import { AppConfigModule } from './appconfig/appconfig.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CatalogModule } from './catalog/catalog.module.js';
 import { AllExceptionsFilter } from './common/exception.filter.js';
@@ -66,6 +67,7 @@ const config = loadConfig();
     HomeModule,
     DownloadsModule,
     YoutubeModule,
+    AppConfigModule,
     SyncModule,
     AdminModule,
     HealthModule,
