@@ -1,11 +1,11 @@
-name: Backend & Admin
+name: Backend, Admin & Web
 
 on:
   push:
     branches: ['**']
-    paths: ['backend/**', 'admin/**', 'docker-compose.yml', 'infra/**', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'admin/**', 'web/**', 'docker-compose.yml', 'infra/**', '.github/workflows/backend.yml']
   pull_request:
-    paths: ['backend/**', 'admin/**', 'docker-compose.yml', 'infra/**']
+    paths: ['backend/**', 'admin/**', 'web/**', 'docker-compose.yml', 'infra/**', '.github/workflows/backend.yml']
   workflow_dispatch:
 
 jobs:
@@ -51,6 +51,18 @@ jobs:
       - run: npm test
       - run: npm audit --omit=dev --audit-level=high
 
+  web:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=high
+
   compose:
     runs-on: ubuntu-latest
     steps:
@@ -63,6 +75,9 @@ jobs:
           docker compose up -d --build --wait --wait-timeout 300 api nginx
           curl -fsS http://localhost:8088/readyz
           curl -fsS -o /dev/null http://localhost:8088/admin/
+          curl -fsS -o /tmp/web.html -D /tmp/web.headers http://localhost:8088/ && grep -q '<div id="root">' /tmp/web.html
+          grep -qi "content-security-policy: default-src 'self'" /tmp/web.headers
+          curl -fsS -o /tmp/deeplink.html 'http://localhost:8088/reset-password?token=x' && grep -q '<div id="root">' /tmp/deeplink.html
           curl -fsS http://localhost:8088/v1/auth/login -H 'content-type: application/json' -d '{"email":"admin@streamero.local","password":"ci-admin-password"}' | jq -e .accessToken > /dev/null
       - if: failure()
         run: docker compose logs --tail 200
