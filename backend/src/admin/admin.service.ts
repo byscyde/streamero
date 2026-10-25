@@ -4,7 +4,10 @@ import { albumFrom, albumSelect, artistSelect, presentAlbum, presentArtist, pres
 import { badRequest, conflict, notFound } from '../common/errors.js';
 import { toPage, type PageQuery } from '../common/pagination.js';
 import { APP_CONFIG, type AppConfig } from '../config/config.js';
-import { DbService } from '../db/db.service.js';
+import { DbService, type Queryable } from '../db/db.service.js';
+import { AuthService } from '../auth/auth.service.js';
+import type { Role } from '../common/auth-user.js';
+import { UsersService } from '../users/users.service.js';
 import { AssetsService } from '../media/assets.service.js';
 import { MediaProcessor } from '../ingestion/processor.js';
 import { JobsService } from '../ingestion/jobs.service.js';
@@ -36,6 +39,8 @@ export class AdminService {
     private readonly redis: RedisService,
     @Inject(STORAGE) private readonly storage: StorageDriver,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
+    private readonly auth: AuthService,
+    private readonly usersService: UsersService,
   ) {}
 
   async overview() {
@@ -330,43 +335,110 @@ export class AdminService {
   }
 
   // ---------------------------------------------------------------- users
+  private static readonly USER_COLUMNS = `u.id, u.email, u.display_name, u.role, u.email_verified_at, u.disabled_at, u.created_at,
+         (SELECT max(played_at) FROM playback_events pe WHERE pe.user_id = u.id) AS last_played_at,
+         (SELECT max(created_at) FROM refresh_tokens rt WHERE rt.user_id = u.id) AS last_session_at`;
+
+  private presentUser(u: any) {
+    const times = [u.last_played_at, u.last_session_at].filter(Boolean).map((t: Date) => new Date(t).getTime());
+    return {
+      id: u.id, email: u.email, displayName: u.display_name, role: u.role, emailVerified: !!u.email_verified_at,
+      disabled: !!u.disabled_at, createdAt: u.created_at, lastActiveAt: times.length ? new Date(Math.max(...times)).toISOString() : null,
+      lastPlayedAt: u.last_played_at,
+    };
+  }
+
   async users(page: PageQuery, q?: string, role?: string) {
     const rows = await this.db.query(
-      `SELECT u.id, u.email, u.display_name, u.role, u.email_verified_at, u.disabled_at, u.created_at,
-         (SELECT max(played_at) FROM playback_events pe WHERE pe.user_id = u.id) AS last_played_at, count(*) OVER () AS total
+      `SELECT ${AdminService.USER_COLUMNS}, count(*) OVER () AS total
        FROM users u WHERE ($3::text IS NULL OR u.email ILIKE '%' || $3 || '%' OR u.display_name ILIKE '%' || $3 || '%')
          AND ($4::user_role IS NULL OR u.role = $4)
        ORDER BY u.created_at DESC LIMIT $1 OFFSET $2`,
       [page.limit + 1, page.offset, q || null, role || null],
     );
-    return toPage(
-      rows.map((u) => ({
-        id: u.id, email: u.email, displayName: u.display_name, role: u.role, emailVerified: !!u.email_verified_at,
-        disabled: !!u.disabled_at, createdAt: u.created_at, lastPlayedAt: u.last_played_at,
-      })),
-      page,
-      rows[0] ? Number(rows[0].total) : 0,
-    );
+    return toPage(rows.map((u) => this.presentUser(u)), page, rows[0] ? Number(rows[0].total) : 0);
   }
 
-  async updateUser(actorId: string, id: string, p: { role?: 'user' | 'editor' | 'admin'; disabled?: boolean }) {
+  async user(id: string, client?: Queryable) {
+    const u = await this.db.one(`SELECT ${AdminService.USER_COLUMNS} FROM users u WHERE u.id = $1`, [id], client);
+    if (!u) throw notFound('User');
+    return this.presentUser(u);
+  }
+
+  /**
+   * Admin-created accounts are email-verified. Without a password (or with sendInvite) the user gets a
+   * set-your-password link (the password-reset flow with a longer expiry).
+   */
+  async createUser(actorId: string, p: { email: string; displayName: string; role: Role; password?: string; sendInvite?: boolean }, ip?: string) {
+    const passwordHash = p.password ? await this.auth.hashPassword(p.password) : null;
+    const row = await this.db.one(
+      `INSERT INTO users (email, password_hash, display_name, role, email_verified_at) VALUES ($1, $2, $3, $4, now())
+       ON CONFLICT (email) DO NOTHING RETURNING id, email`,
+      [p.email.trim(), passwordHash, p.displayName.trim(), p.role],
+    );
+    if (!row) throw conflict('email_taken', 'An account with this email already exists');
+    const invite = !p.password || !!p.sendInvite;
+    await this.audit.record({ actorId, action: 'user.admin_create', targetType: 'user', targetId: row.id, metadata: { role: p.role, withPassword: !!p.password, invite }, ip });
+    if (invite) await this.auth.sendPasswordReset(row.id, row.email, { invite: true });
+    return this.user(row.id);
+  }
+
+  async updateUser(
+    actorId: string,
+    id: string,
+    p: { role?: Role; disabled?: boolean; email?: string; displayName?: string; emailVerified?: boolean },
+    ip?: string,
+  ) {
     return this.db.tx(async (client) => {
       const u = await this.db.one('SELECT id, role, disabled_at FROM users WHERE id = $1 FOR UPDATE', [id], client);
       if (!u) throw notFound('User');
-      const losingAdmin = u.role === 'admin' && ((p.role && p.role !== 'admin') || p.disabled === true);
+      const losingAdmin = u.role === 'admin' && !u.disabled_at && ((p.role && p.role !== 'admin') || p.disabled === true);
       if (losingAdmin) {
+        await this.db.query('SELECT pg_advisory_xact_lock(727002)', [], client);
         const n = await this.db.one(`SELECT count(*)::int AS n FROM users WHERE role = 'admin' AND disabled_at IS NULL AND id <> $1`, [id], client);
         if (n.n === 0) throw conflict('last_admin', 'At least one active administrator is required');
       }
+      if (p.email !== undefined) {
+        const taken = await this.db.one('SELECT id FROM users WHERE email = $1 AND id <> $2', [p.email.trim(), id], client);
+        if (taken) throw conflict('email_taken', 'An account with this email already exists');
+      }
       await this.db.query(
-        `UPDATE users SET role = coalesce($2, role), disabled_at = CASE WHEN $3::boolean IS NULL THEN disabled_at WHEN $3 THEN coalesce(disabled_at, now()) ELSE NULL END WHERE id = $1`,
-        [id, p.role ?? null, p.disabled ?? null],
+        `UPDATE users SET role = coalesce($2, role),
+           disabled_at = CASE WHEN $3::boolean IS NULL THEN disabled_at WHEN $3 THEN coalesce(disabled_at, now()) ELSE NULL END,
+           email = coalesce($4, email), display_name = coalesce($5, display_name),
+           email_verified_at = CASE WHEN $6::boolean IS NULL THEN email_verified_at WHEN $6 THEN coalesce(email_verified_at, now()) ELSE NULL END
+         WHERE id = $1`,
+        [id, p.role ?? null, p.disabled ?? null, p.email?.trim() ?? null, p.displayName?.trim() || null, p.emailVerified ?? null],
         client,
       );
       if (p.disabled) await this.db.query('UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL', [id], client);
-      await this.audit.record({ actorId, action: 'user.admin_update', targetType: 'user', targetId: id, metadata: p }, client);
-      return { id, ...p };
+      await this.audit.record({ actorId, action: 'user.admin_update', targetType: 'user', targetId: id, metadata: { fields: Object.keys(p), role: p.role, disabled: p.disabled }, ip }, client);
+      return this.user(id, client);
     });
+  }
+
+  /** Sets a new password (policy enforced by the DTO) and revokes all of the user's sessions. */
+  async setUserPassword(actorId: string, id: string, password: string, ip?: string) {
+    await this.db.tx(async (client) => {
+      const u = await this.db.one('SELECT id FROM users WHERE id = $1 FOR UPDATE', [id], client);
+      if (!u) throw notFound('User');
+      await this.auth.setPassword(id, password, client);
+      await this.audit.record({ actorId, action: 'user.admin_set_password', targetType: 'user', targetId: id, ip }, client);
+    });
+  }
+
+  async sendUserReset(actorId: string, id: string, ip?: string) {
+    const u = await this.db.one('SELECT id, email, disabled_at FROM users WHERE id = $1', [id]);
+    if (!u) throw notFound('User');
+    if (u.disabled_at) throw conflict('account_disabled', 'This account is disabled; enable it before sending a reset link');
+    await this.auth.sendPasswordReset(u.id, u.email);
+    await this.audit.record({ actorId, action: 'user.admin_send_reset', targetType: 'user', targetId: id, ip });
+  }
+
+  /** Same code path as self-service deletion (personal data and stored objects are removed). */
+  async deleteUser(actorId: string, id: string, ip?: string) {
+    if (actorId === id) throw conflict('cannot_delete_self', 'You cannot delete your own account from the admin dashboard');
+    await this.usersService.deleteAccount(id, { actorId, ip });
   }
 
   // ---------------------------------------------------------------- home, audit, system

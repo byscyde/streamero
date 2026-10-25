@@ -1,8 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsOptional, IsString, Length, Matches, MaxLength } from 'class-validator';
 
-const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{10,128}$/;
-const PASSWORD_MSG = 'Password must be 10-128 characters and contain letters and digits';
+export const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{10,128}$/;
+export const PASSWORD_MSG = 'Password must be 10-128 characters and contain letters and digits';
 
 export class RegisterDto {
   @ApiProperty() @IsEmail() @MaxLength(254) email: string;

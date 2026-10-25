@@ -169,7 +169,7 @@ export class AuthService {
     await this.mail.send({
       to: email,
       subject: 'Verify your STREAMERO account',
-      text: `Welcome to STREAMERO!\n\nConfirm your email address by opening this link on your device:\n${this.config.APP_LINK_BASE}verify-email?token=${token}\n\nThe link expires in 24 hours.`,
+      text: `Welcome to STREAMERO!\n\nConfirm your email address by opening this link (it opens in your web browser):\n${this.config.APP_LINK_BASE}verify-email?token=${token}\n\nThe link expires in 24 hours.`,
     });
   }
 
@@ -190,13 +190,37 @@ export class AuthService {
   async forgotPassword(email: string, ip?: string) {
     const user = await this.db.one('SELECT id, email FROM users WHERE email = $1 AND disabled_at IS NULL', [email.trim()]);
     if (!user) return;
-    const token = await this.createEmailToken(user.id, 'reset_password', 30);
     await this.audit.record({ actorId: user.id, action: 'auth.password_reset_requested', ip });
-    await this.mail.send({
-      to: user.email,
-      subject: 'Reset your STREAMERO password',
-      text: `Someone requested a password reset for your STREAMERO account.\n\nOpen this link to choose a new password:\n${this.config.APP_LINK_BASE}reset-password?token=${token}\n\nThe link expires in 30 minutes. If this wasn't you, ignore this email.`,
-    });
+    await this.sendPasswordReset(user.id, user.email);
+  }
+
+  /**
+   * Creates a single-use reset token and emails the link. Used by self-service "forgot password" and by
+   * administrators (send-reset, or inviting a new account that has no password yet: `invite` = longer TTL).
+   */
+  async sendPasswordReset(userId: string, email: string, opts: { invite?: boolean } = {}) {
+    const ttlMinutes = opts.invite ? 60 * 24 * 3 : 30;
+    const token = await this.createEmailToken(userId, 'reset_password', ttlMinutes);
+    const link = `${this.config.APP_LINK_BASE}reset-password?token=${token}`;
+    await this.mail.send(
+      opts.invite
+        ? {
+            to: email,
+            subject: 'Your STREAMERO account is ready',
+            text: `An administrator created a STREAMERO account for you (${email}).\n\nOpen this link to choose your password (it opens in your web browser):\n${link}\n\nThe link expires in 3 days.`,
+          }
+        : {
+            to: email,
+            subject: 'Reset your STREAMERO password',
+            text: `Someone requested a password reset for your STREAMERO account.\n\nOpen this link to choose a new password (it opens in your web browser):\n${link}\n\nThe link expires in 30 minutes. If this wasn't you, ignore this email.`,
+          },
+    );
+  }
+
+  /** Sets a password without knowing the old one (admin action) and signs the user out everywhere. */
+  async setPassword(userId: string, password: string, client?: pg.PoolClient) {
+    await this.db.query('UPDATE users SET password_hash = $2 WHERE id = $1', [userId, await this.hashPassword(password)], client);
+    await this.db.query('UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL', [userId], client);
   }
 
   async resetPassword(token: string, password: string, ip?: string) {

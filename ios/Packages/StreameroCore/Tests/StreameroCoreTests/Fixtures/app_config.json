@@ -1,0 +1,39 @@
+{
+  "version": "3f9a1c0b2d4e5f60",
+  "brand": {
+    "appName": "STREAMERO",
+    "tagline": "Your Sound. Your Screen. Your World.",
+    "developer": "SCYDE",
+    "developerUrl": "https://scyde.dev",
+    "supportEmail": "no-reply@scyde.dev"
+  },
+  "theme": {
+    "accent": "#E31E2D",
+    "onAccent": "#FFFFFF",
+    "background": "#0E0E10",
+    "surface": "#18181B",
+    "surfaceRaised": "#232327",
+    "border": "#3A3A40",
+    "textPrimary": "#FFFFFF",
+    "textSecondary": "#A1A1AA",
+    "titleFont": "mono",
+    "cornerRadius": 12,
+    "genreGradients": true,
+    "playerStyle": "artwork"
+  },
+  "texts": {
+    "welcomeTitle": "Discover your music,\npersonalize your experience",
+    "welcomeSubtitle": "Use your email or Apple ID to continue with STREAMERO.",
+    "homeGreeting": true
+  },
+  "home": {
+    "chips": ["All", "Music", "Videos"],
+    "sectionsOrder": ["recommended_playlists", "genres", "top_artists", "new_albums", "popular_singles",
+                      "recently_played", "made_for_you", "music_videos"]
+  },
+  "features": {
+    "videos": true, "youtube": true, "lyrics": true, "downloads": true,
+    "equalizer": true, "radio": true, "signup": true, "appleSignIn": true
+  },
+  "announcement": { "enabled": false, "text": "", "style": "info" }
+}

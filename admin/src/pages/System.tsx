@@ -1,53 +1,7 @@
 import { useState } from 'react';
 import { api, formatBytes, type Page } from '../api';
 import { useAsync, useDebounced, useToast } from '../hooks';
-import { ConfirmButton, fmtDate, Loading, Pager, StatusBadge } from '../components/ui';
-
-export function Users({ me }: { me: any }) {
-  const [q, setQ] = useState('');
-  const [offset, setOffset] = useState(0);
-  const dq = useDebounced(q);
-  const { data, error, loading, reload } = useAsync(() => api.get<Page<any>>('/v1/admin/users', { q: dq, offset, limit: 50 }), [dq, offset]);
-  const { notify, fail } = useToast();
-  const update = (id: string, body: object) => api.patch(`/v1/admin/users/${id}`, body).then(() => { notify('Updated'); reload(); }).catch(fail);
-  return (
-    <>
-      <h1>Users & roles</h1>
-      <p className="muted">Roles: <b>admin</b> (everything), <b>editor</b> (catalog & ingestion), <b>user</b> (listening). Permissions are enforced by the API, not by this page.</p>
-      <input value={q} onChange={(e) => { setQ(e.target.value); setOffset(0); }} placeholder="Search email or name" aria-label="Search users" />
-      <Loading error={error} loading={loading && !data} retry={reload} />
-      {data && (
-        <div className="table-wrap" style={{ marginTop: 12 }}>
-          <table>
-            <thead><tr><th>User</th><th>Role</th><th>Verified</th><th>Joined</th><th>Last played</th><th>Status</th><th /></tr></thead>
-            <tbody>
-              {data.items.map((u) => (
-                <tr key={u.id}>
-                  <td className="wrap">{u.displayName}<div className="small-text">{u.email}</div></td>
-                  <td>
-                    <select value={u.role} disabled={u.id === me.id} aria-label={`Role for ${u.email}`} onChange={(e) => update(u.id, { role: e.target.value })}>
-                      <option value="user">user</option><option value="editor">editor</option><option value="admin">admin</option>
-                    </select>
-                  </td>
-                  <td>{u.emailVerified ? '✓' : '—'}</td>
-                  <td>{fmtDate(u.createdAt)}</td>
-                  <td>{fmtDate(u.lastPlayedAt)}</td>
-                  <td><StatusBadge status={u.disabled ? 'disabled' : 'active'} /></td>
-                  <td>
-                    {u.id !== me.id && (u.disabled
-                      ? <button className="small" onClick={() => update(u.id, { disabled: false })}>Enable</button>
-                      : <ConfirmButton label="Disable" confirm={`Disable ${u.email}? They are signed out everywhere.`} onConfirm={() => update(u.id, { disabled: true })} />)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <Pager page={data} onChange={setOffset} />
-    </>
-  );
-}
+import { ConfirmButton, fmtDate, Loading, Pager } from '../components/ui';
 
 export function Storage() {
   const { data, error, loading } = useAsync(() => api.get<any>('/v1/admin/storage'), []);

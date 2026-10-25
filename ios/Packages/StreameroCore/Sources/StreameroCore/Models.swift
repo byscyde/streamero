@@ -557,8 +557,10 @@ public struct SyncState: Codable, Sendable, Equatable {
     public var catalogVersion: String
     public var libraryVersion: String
     public var serverTime: Date
-    public init(catalogVersion: String, libraryVersion: String, serverTime: Date) {
-        self.catalogVersion = catalogVersion; self.libraryVersion = libraryVersion; self.serverTime = serverTime
+    /// Version of the remote appearance config (`/v1/app/config`); absent on older servers.
+    public var configVersion: String?
+    public init(catalogVersion: String, libraryVersion: String, serverTime: Date, configVersion: String? = nil) {
+        self.catalogVersion = catalogVersion; self.libraryVersion = libraryVersion; self.serverTime = serverTime; self.configVersion = configVersion
     }
 }
 

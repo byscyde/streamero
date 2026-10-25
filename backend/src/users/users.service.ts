@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { toPublicUser } from '../auth/auth.service.js';
 import { badRequest, conflict, notFound, unauthorized } from '../common/errors.js';
 import { DbService } from '../db/db.service.js';
+import { AssetsService } from '../media/assets.service.js';
 import { STORAGE } from '../storage/storage.module.js';
 import type { StorageDriver } from '../storage/storage.driver.js';
 
@@ -28,6 +29,7 @@ export class UsersService {
   constructor(
     private readonly db: DbService,
     private readonly audit: AuditService,
+    private readonly assets: AssetsService,
     @Inject(STORAGE) private readonly storage: StorageDriver,
   ) {}
 
@@ -151,17 +153,37 @@ export class UsersService {
 
   /** Permanently deletes the account. Requires the password for password accounts. */
   async delete(userId: string, password?: string) {
-    const u = await this.db.one('SELECT password_hash, role, avatar_asset_id FROM users WHERE id = $1', [userId]);
+    const u = await this.db.one('SELECT password_hash FROM users WHERE id = $1', [userId]);
     if (!u) throw notFound('User');
     if (u.password_hash && !(password && (await verify(u.password_hash, password).catch(() => false)))) {
       throw unauthorized('invalid_credentials', 'Password is incorrect');
     }
-    if (u.role === 'admin') {
-      const admins = await this.db.one(`SELECT count(*)::int AS n FROM users WHERE role = 'admin' AND disabled_at IS NULL`);
-      if (admins.n <= 1) throw conflict('last_admin', 'The last administrator cannot delete their account');
-    }
-    await this.db.query('DELETE FROM users WHERE id = $1', [userId]);
-    if (u.avatar_asset_id) await this.deleteAsset(u.avatar_asset_id);
-    await this.audit.record({ actorId: null, action: 'user.deleted', targetType: 'user', targetId: userId });
+    await this.deleteAccount(userId);
+  }
+
+  /**
+   * Shared deletion path (self-service and admin): removes the user row (personal data cascades: library,
+   * history, playlists, sessions, tokens, uploads) and then the stored objects nothing else references
+   * (avatar, artwork of the user's own playlists). The last active administrator can never be deleted.
+   */
+  async deleteAccount(userId: string, opts: { actorId?: string | null; ip?: string } = {}) {
+    const assetIds = await this.db.tx(async (client) => {
+      const u = await this.db.one('SELECT id, email, role, avatar_asset_id, disabled_at FROM users WHERE id = $1 FOR UPDATE', [userId], client);
+      if (!u) throw notFound('User');
+      if (u.role === 'admin' && !u.disabled_at) {
+        // Serialise concurrent admin deletions so two requests cannot remove the last two admins.
+        await this.db.query('SELECT pg_advisory_xact_lock(727002)', [], client);
+        const others = await this.db.one(`SELECT count(*)::int AS n FROM users WHERE role = 'admin' AND disabled_at IS NULL AND id <> $1`, [userId], client);
+        if (others.n === 0) throw conflict('last_admin', 'The last active administrator cannot be deleted');
+      }
+      const playlistArt = await this.db.query('SELECT artwork_asset_id FROM playlists WHERE owner_id = $1 AND artwork_asset_id IS NOT NULL', [userId], client);
+      await this.db.query('DELETE FROM users WHERE id = $1', [userId], client);
+      await this.audit.record(
+        { actorId: opts.actorId && opts.actorId !== userId ? opts.actorId : null, action: opts.actorId && opts.actorId !== userId ? 'user.admin_delete' : 'user.deleted', targetType: 'user', targetId: userId, ip: opts.ip },
+        client,
+      );
+      return [u.avatar_asset_id, ...playlistArt.map((p) => p.artwork_asset_id)];
+    });
+    await this.assets.deleteIfUnreferenced(assetIds);
   }
 }

@@ -1,10 +1,12 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Put, Query, Req } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
+import { PASSWORD_MSG, PASSWORD_RULE } from '../auth/auth.dto.js';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsEmail,
   IsIn,
   IsInt,
   IsObject,
@@ -12,6 +14,7 @@ import {
   IsString,
   IsUUID,
   Length,
+  Matches,
   MaxLength,
   Min,
   ValidateNested,
@@ -121,6 +124,37 @@ class SubtitlePatchDto {
 class UserPatchDto {
   @ApiPropertyOptional({ enum: ['user', 'editor', 'admin'] }) @IsOptional() @IsIn(['user', 'editor', 'admin']) role?: 'user' | 'editor' | 'admin';
   @ApiPropertyOptional() @IsOptional() @IsBoolean() disabled?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsEmail() @MaxLength(254) email?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @Length(1, 80) displayName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() emailVerified?: boolean;
+}
+
+class CreateUserDto {
+  @ApiProperty() @IsEmail() @MaxLength(254) email: string;
+  @ApiProperty() @IsString() @Length(1, 80) displayName: string;
+  @ApiProperty({ enum: ['user', 'editor', 'admin'] }) @IsIn(['user', 'editor', 'admin']) role: 'user' | 'editor' | 'admin';
+  @ApiPropertyOptional({ minLength: 10, description: 'Omit to email the user a link to choose their own password' })
+  @IsOptional()
+  @IsString()
+  @Matches(PASSWORD_RULE, { message: PASSWORD_MSG })
+  password?: string;
+  @ApiPropertyOptional({ description: 'Also email a set-password link when a password is given' }) @IsOptional() @IsBoolean() sendInvite?: boolean;
+}
+
+class SetPasswordDto {
+  @ApiProperty({ minLength: 10 }) @IsString() @Matches(PASSWORD_RULE, { message: PASSWORD_MSG }) password: string;
+}
+
+class AdminUserDto {
+  @ApiProperty() id: string;
+  @ApiProperty() email: string;
+  @ApiProperty() displayName: string;
+  @ApiProperty({ enum: ['user', 'editor', 'admin'] }) role: string;
+  @ApiProperty() disabled: boolean;
+  @ApiProperty() emailVerified: boolean;
+  @ApiProperty() createdAt: string;
+  @ApiProperty({ nullable: true, type: String }) lastActiveAt: string | null;
+  @ApiProperty({ nullable: true, type: String }) lastPlayedAt: string | null;
 }
 
 class HomeSectionDto {
@@ -367,10 +401,48 @@ export class AdminController {
     return this.admin.users(page, q?.slice(0, 100), role || undefined);
   }
 
+  @Post('users')
+  @RequireRole('admin')
+  @ApiCreatedResponse({ type: AdminUserDto })
+  createUser(@CurrentUser() user: AuthUser, @Body() dto: CreateUserDto, @Req() req: Request) {
+    return this.admin.createUser(user.id, dto, req.ip);
+  }
+
+  @Get('users/:id')
+  @RequireRole('admin')
+  @ApiOkResponse({ type: AdminUserDto })
+  user(@Param('id', uuidPipe) id: string) {
+    return this.admin.user(id);
+  }
+
   @Patch('users/:id')
   @RequireRole('admin')
-  updateUser(@CurrentUser() user: AuthUser, @Param('id', uuidPipe) id: string, @Body() dto: UserPatchDto) {
-    return this.admin.updateUser(user.id, id, dto);
+  @ApiOkResponse({ type: AdminUserDto })
+  updateUser(@CurrentUser() user: AuthUser, @Param('id', uuidPipe) id: string, @Body() dto: UserPatchDto, @Req() req: Request) {
+    return this.admin.updateUser(user.id, id, dto, req.ip);
+  }
+
+  @Post('users/:id/password')
+  @RequireRole('admin')
+  @HttpCode(204)
+  @ApiNoContentResponse({ description: 'Password set; all of the user\'s sessions were revoked' })
+  async setUserPassword(@CurrentUser() user: AuthUser, @Param('id', uuidPipe) id: string, @Body() dto: SetPasswordDto, @Req() req: Request) {
+    await this.admin.setUserPassword(user.id, id, dto.password, req.ip);
+  }
+
+  @Post('users/:id/send-reset')
+  @RequireRole('admin')
+  @HttpCode(202)
+  async sendUserReset(@CurrentUser() user: AuthUser, @Param('id', uuidPipe) id: string, @Req() req: Request) {
+    await this.admin.sendUserReset(user.id, id, req.ip);
+  }
+
+  @Delete('users/:id')
+  @RequireRole('admin')
+  @HttpCode(204)
+  @ApiNoContentResponse({ description: 'Account and personal data deleted' })
+  async deleteUser(@CurrentUser() user: AuthUser, @Param('id', uuidPipe) id: string, @Req() req: Request) {
+    await this.admin.deleteUser(user.id, id, req.ip);
   }
 
   @Get('audit-logs')

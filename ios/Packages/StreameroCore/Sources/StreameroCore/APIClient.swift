@@ -395,6 +395,9 @@ public extension APIClient {
     // Sync
     func syncState() async throws -> SyncState { try await send(Endpoint("GET", "v1/sync/state")) }
 
+    // Remote appearance / feature config (public, also used before sign-in)
+    func appConfig() async throws -> AppConfig { try await send(Endpoint("GET", "v1/app/config", requiresAuth: false)) }
+
     // YouTube (official discovery API only)
     func youtubeSearch(_ q: String) async throws -> YouTubeSearch { try await send(Endpoint("GET", "v1/youtube/search", query: [URLQueryItem(name: "q", value: q)])) }
 }

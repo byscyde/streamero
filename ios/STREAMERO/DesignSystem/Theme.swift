@@ -1,51 +1,95 @@
+import StreameroCore
 import SwiftUI
 import UIKit
 
 /// STREAMERO design tokens. Views use these semantic names only, never raw colours or magic numbers.
+///
+/// The look: near-black canvas, one red accent, white type, monospace titles for music, outline pills.
+/// Colours, the title font, the corner radius and genre gradients come from the remote appearance
+/// config (`AppearanceStore`), so every token is a computed property that SwiftUI observes.
 enum Theme {
     // MARK: Colour
 
-    /// Streaming-app dark palette: near-black canvas, grey elevation steps, white type, one green accent.
-    /// The accent is a single token, so the brand colour can be changed in one place.
     enum Palette {
-        static let background = dynamic(dark: 0x121212, light: 0xFFFFFF)
-        static let surface = dynamic(dark: 0x181818, light: 0xF6F6F6)
-        static let surfaceRaised = dynamic(dark: 0x242424, light: 0xEDEDED)
-        static let surfaceHighlight = dynamic(dark: 0x2A2A2A, light: 0xE2E2E2)
-        static let tile = dynamic(dark: 0x2A2A2A, light: 0xEFEFEF)
-        static let separator = dynamic(dark: 0x2A2A2A, light: 0xDADADA)
-        static let textPrimary = dynamic(dark: 0xFFFFFF, light: 0x000000)
-        static let textSecondary = dynamic(dark: 0xB3B3B3, light: 0x6A6A6A)
-        static let textTertiary = dynamic(dark: 0x727272, light: 0x9A9A9A)
-        static let accent = Color(hex: 0x1FDF64)
-        static let onAccent = Color.black
-        static let violet = accent
+        static var background: Color { AppearanceStore.shared.palette.background }
+        static var surface: Color { AppearanceStore.shared.palette.surface }
+        static var surfaceRaised: Color { AppearanceStore.shared.palette.surfaceRaised }
+        static var surfaceHighlight: Color { AppearanceStore.shared.palette.surfaceHighlight }
+        /// Compact tiles (shortcuts) sit on the card surface.
+        static var tile: Color { AppearanceStore.shared.palette.surface }
+        /// Outline pills ("More", Shuffle, Radio) and hairlines.
+        static var border: Color { AppearanceStore.shared.palette.border }
+        static var separator: Color { AppearanceStore.shared.palette.border.opacity(0.6) }
+        static var textPrimary: Color { AppearanceStore.shared.palette.textPrimary }
+        static var textSecondary: Color { AppearanceStore.shared.palette.textSecondary }
+        static var textTertiary: Color { AppearanceStore.shared.palette.textTertiary }
+        static var accent: Color { AppearanceStore.shared.palette.accent }
+        static var onAccent: Color { AppearanceStore.shared.palette.onAccent }
+        static var accentUIColor: UIColor { AppearanceStore.shared.palette.accentUIColor }
+        static var backgroundUIColor: UIColor { AppearanceStore.shared.palette.backgroundUIColor }
+        static var surfaceUIColor: UIColor { AppearanceStore.shared.palette.surfaceUIColor }
+        /// Legacy aliases: the old design had several highlight colours; the new one has a single accent.
+        static var violet: Color { accent }
+        static var turquoise: Color { accent }
+        static var success: Color { accent }
         static let blue = Color(hex: 0x509BF5)
-        static let turquoise = accent
-        static let success = accent
         static let warning = Color(hex: 0xFFA42B)
-        static let danger = Color(hex: 0xF15E6C)
-        static let explicitBadge = dynamic(dark: 0xB3B3B3, light: 0x6A6A6A)
-
-        static func dynamic(dark: UInt32, light: UInt32) -> Color {
-            Color(UIColor { $0.userInterfaceStyle == .light ? UIColor(hex: light) : UIColor(hex: dark) })
-        }
+        static let danger = Color(hex: 0xFF4552)
+        static var explicitBadge: Color { textSecondary }
+        /// The big round transport button (white with black glyph, independent of the accent).
+        static let playButton = Color.white
+        static let onPlayButton = Color.black
     }
 
     enum Gradients {
-        /// Solid accent expressed as a gradient so existing `foregroundStyle(brand)` call sites stay valid.
-        static let brand = LinearGradient(colors: [Palette.accent, Palette.accent], startPoint: .top, endPoint: .bottom)
-        static let brandHorizontal = brand
-        /// Liked Songs tile.
-        static let likedSongs = LinearGradient(colors: [Color(hex: 0x450AF5), Color(hex: 0x8E8EE5), Color(hex: 0xC4EFD9)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        /// Accent expressed as a gradient so `foregroundStyle(brand)` call sites stay valid.
+        static var brand: LinearGradient {
+            LinearGradient(colors: [Color(hex: 0xFF5A64), Palette.accent], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        static var brandHorizontal: LinearGradient {
+            LinearGradient(colors: [Color(hex: 0xFF5A64), Palette.accent], startPoint: .leading, endPoint: .trailing)
+        }
+        /// Liked Songs tile: deep red to near-black.
+        static var likedSongs: LinearGradient {
+            LinearGradient(colors: [Color(hex: 0xFF4552), Color(hex: 0x8E0F1A), Color(hex: 0x2A0A0E)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
         static func artworkWash(_ tint: Color) -> LinearGradient {
             LinearGradient(colors: [tint.opacity(0.9), tint.opacity(0.35), Palette.background], startPoint: .top, endPoint: .bottom)
         }
-        static let scrim = LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .center, endPoint: .bottom)
+        static let scrim = LinearGradient(colors: [.clear, .black.opacity(0.35), .black.opacity(0.92)], startPoint: .top, endPoint: .bottom)
         static let tabBar = LinearGradient(colors: [.black.opacity(0), .black.opacity(0.85), .black], startPoint: .top, endPoint: .bottom)
+
+        /// Colourful genre chip gradients (pairs), picked by a stable hash of the genre name.
+        static let genrePairs: [(UInt32, UInt32)] = [
+            (0x6A5CFF, 0xF06AD7), // violet → pink ("Pop")
+            (0x7A0D16, 0xE31E2D), // wine → red
+            (0x0F3D6E, 0x2F8CFF), // navy → blue
+            (0xFF7A18, 0xFFC03A), // orange → amber
+            (0x5B2A86, 0xB24BF3), // plum → purple
+            (0x00897B, 0x35C2B0), // teal
+            (0xB0124D, 0xFF5A8A), // raspberry
+            (0x1F2A44, 0x5B6B8C), // slate
+            (0x9C3D00, 0xFF8A3D), // rust
+            (0x3B1F6B, 0x6A8DFF), // indigo
+        ]
+
+        static func genre(_ name: String) -> LinearGradient {
+            genre(index: stableIndex(name, count: genrePairs.count))
+        }
+
+        static func genre(index: Int) -> LinearGradient {
+            let pair = genrePairs[abs(index) % genrePairs.count]
+            return LinearGradient(colors: [Color(hex: pair.0), Color(hex: pair.1)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+
+        /// djb2: deterministic between launches (unlike `hashValue`).
+        static func stableIndex(_ s: String, count: Int) -> Int {
+            let h = s.lowercased().unicodeScalars.reduce(UInt32(5381)) { ($0 &* 33) &+ $1.value }
+            return Int(h % UInt32(max(1, count)))
+        }
     }
 
-    // MARK: Typography (Dynamic Type aware)
+    // MARK: Typography (Dynamic Type aware where it matters)
 
     enum Typography {
         static let display = Font.system(.largeTitle).weight(.heavy)
@@ -57,6 +101,22 @@ enum Theme {
         static let caption = Font.system(.caption)
         static let micro = Font.system(.caption2).weight(.bold)
         static let mono = Font.system(.caption2).monospacedDigit()
+        /// Section headers ("Genres", "Top artist", "New albums").
+        static let section = Font.system(size: 22, weight: .bold)
+
+        /// Font design for track / album / artist titles (`theme.titleFont`).
+        static var titleDesign: Font.Design {
+            switch AppearanceStore.shared.config.theme.titleFont {
+            case .mono: .monospaced
+            case .rounded: .rounded
+            case .default: .default
+            }
+        }
+
+        /// Track, album and artist titles: bold and monospaced by default.
+        static func media(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+            Font.system(size: size, weight: weight, design: titleDesign)
+        }
     }
 
     // MARK: Layout
@@ -74,10 +134,13 @@ enum Theme {
 
     enum Radius {
         static let s: CGFloat = 4
-        static let m: CGFloat = 6
-        static let l: CGFloat = 8
-        static let xl: CGFloat = 12
-        static let artwork: CGFloat = 4
+        static let m: CGFloat = 8
+        static let l: CGFloat = 10
+        static let xl: CGFloat = 16
+        /// Cards and large artwork (`theme.cornerRadius`, 0…28).
+        static var card: CGFloat { CGFloat(AppearanceStore.shared.config.theme.cornerRadius) }
+        /// Small artwork in rows and the mini player.
+        static var artwork: CGFloat { min(card, 8) }
     }
 
     enum Shadow {
@@ -93,9 +156,11 @@ enum Theme {
     }
 
     enum Size {
-        static let miniPlayerHeight: CGFloat = 56
-        static let rowArtwork: CGFloat = 48
-        static let card: CGFloat = 150
+        static let miniPlayerHeight: CGFloat = 64
+        static let rowArtwork: CGFloat = 52
+        static let card: CGFloat = 160
+        static let bigCard: CGFloat = 196
+        static let artistAvatar: CGFloat = 132
         static let minTapTarget: CGFloat = 44
     }
 }
