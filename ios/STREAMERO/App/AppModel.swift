@@ -56,7 +56,6 @@ final class AppModel {
         appearance = AppearanceStore.shared
         if ProcessInfo.processInfo.arguments.contains("--uitesting-reset") { appearance.resetToDefaults() }
         let container: ModelContainer
-    let appearance: AppearanceStore
         do {
             container = try ModelContainer(for: DownloadRecord.self)
         } catch {
