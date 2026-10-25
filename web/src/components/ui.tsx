@@ -86,9 +86,15 @@ export function Carousel({ children, className = '' }: { children: ReactNode; cl
   const update = () => {
     const el = ref.current;
     if (!el) return;
-    setEdges({ start: el.scrollLeft < 4, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 });
+    const start = el.scrollLeft < 4;
+    const end = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+    setEdges((e) => (e.start === start && e.end === end ? e : { start, end }));
   };
-  useLayoutEffect(update);
+  useLayoutEffect(update, [children]);
+  useEffect(() => {
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
   const by = (d: number) => ref.current?.scrollBy({ left: d * ref.current.clientWidth * 0.8, behavior: 'smooth' });
   return (
     <div className="carousel-wrap">
@@ -465,7 +471,7 @@ export function ConfirmDialog({ title, body, confirm, danger, onConfirm, onClose
 }
 
 export function PlaylistPicker({ trackIds, onClose }: { trackIds: string[]; onClose: () => void }) {
-  const playlists = useApp((s) => s.playlists.filter((p) => p.canEdit));
+  const playlists = useApp((s) => s.playlists).filter((p) => p.canEdit);
   const [creating, setCreating] = useState(false);
   const add = async (id: string, title: string) => {
     try {

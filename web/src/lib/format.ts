@@ -25,7 +25,7 @@ export function compactNumber(n: number | null | undefined): string {
     [1e6, 'M'],
     [1e3, 'K'],
   ] as const;
-  for (const [v, u] of units) if (n >= v) return `${(n / v).toFixed(n / v < 10 ? 2 : n / v < 100 ? 1 : 0).replace(/\.?0+$/, '')}${u}`;
+  for (const [v, u] of units) if (n >= v) return `${(n / v).toFixed(n / v < 10 ? 2 : n / v < 100 ? 1 : 0).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')}${u}`;
   return String(n);
 }
 
