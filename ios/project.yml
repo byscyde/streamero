@@ -12,8 +12,8 @@ configs:
   Release: release
 settings:
   base:
-    MARKETING_VERSION: "1.3.0"
-    CURRENT_PROJECT_VERSION: "5"
+    MARKETING_VERSION: "1.3.1"
+    CURRENT_PROJECT_VERSION: "6"
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     DEVELOPMENT_TEAM: ""
