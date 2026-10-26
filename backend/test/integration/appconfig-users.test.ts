@@ -24,8 +24,9 @@ const lastMailTo = (to: string) => mail.outbox.filter((m) => m.to === to).at(-1)
 describe('remote app config', () => {
   it('serves the full default document publicly with caching headers and ETag/304', async () => {
     const res = await ctx.http.get('/v1/app/config').expect(200);
-    const { version, ...doc } = res.body;
+    const { version, auth: providers, ...doc } = res.body;
     expect(doc).toEqual(DEFAULT_APPEARANCE);
+    expect(providers).toEqual({ googleIosClientId: null, googleWebClientId: 'test-web.apps.googleusercontent.com' });
     expect(version).toMatch(/^[0-9a-f]{16}$/);
     expect(res.headers['cache-control']).toBe('public, max-age=30');
     expect(res.headers.etag).toBe(`"${version}"`);
@@ -97,7 +98,7 @@ describe('remote app config', () => {
 
   it('resets to defaults', async () => {
     const res = await ctx.http.post('/v1/admin/appearance/reset').set(auth(admin.token)).expect(200);
-    const { version, ...doc } = res.body;
+    const { version, auth: _providers, ...doc } = res.body;
     expect(doc).toEqual(DEFAULT_APPEARANCE);
     const sync = await ctx.http.get('/v1/sync/state').set(auth(listener.token)).expect(200);
     expect(sync.body.configVersion).toBe(version);

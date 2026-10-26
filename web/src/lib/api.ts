@@ -242,6 +242,12 @@ export class ApiClient {
     this.setSession(s);
     return s.user;
   }
+  /** Exchanges a Google ID token (OIDC implicit flow, see lib/googleAuth.ts) for a STREAMERO session. */
+  async googleLogin(idToken: string, nonce: string) {
+    const s = await this.request<Session>('POST', '/v1/auth/google', { body: { idToken, nonce, deviceName: this.deviceName }, auth: false });
+    this.setSession(s);
+    return s.user;
+  }
   async register(email: string, password: string, displayName: string) {
     const s = await this.request<Session>('POST', '/v1/auth/register', { body: { email, password, displayName }, auth: false });
     this.setSession(s);

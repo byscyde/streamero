@@ -24,13 +24,13 @@ in this repository's environment; the evidence column says which.
 | iOS unit + UI smoke tests | ✅ Verified in CI | 5 unit tests + 1 UI test on iPhone 16 Pro simulator (iOS 18.5) |
 | Fixed service address + 30 s sync | ✅ Implemented | App always uses `https://app.streamero.net` (build setting `STREAMERO_SERVER_URL`, https only, no server UI). `SyncCenter` polls `GET /v1/sync/state` every 30 s while the app is active or playing in the background; changed versions trigger library/catalog reloads. When the app is suspended, iOS only allows system-scheduled `BGAppRefresh` (≥ ~15 min) — true real-time push would need APNs. Backend endpoint covered by an integration test |
 | Streaming-app style UI (dark theme, Home shortcuts/chips, Search "Browse all", Your Library, artwork-tinted headers/mini player/lyrics) | ✅ Implemented | Own name, icon and wording; layout and interaction patterns follow common music-streaming conventions. Compiled and UI-smoke-tested in CI only (no device screenshots) |
-| Web player (`/`) | ✅ Implemented | 49 unit tests, build + audit in CI; Playwright run against a real local backend (register, play, follow, playlists, appearance change). Lossless ALAC falls back to AAC in browsers that cannot decode it; no web downloads/crossfade/Apple sign-in |
+| Web player (`/`) | ✅ Implemented | 49 unit tests, build + audit in CI; Playwright run against a real local backend (register, play, follow, playlists, appearance change). Lossless ALAC falls back to AAC in browsers that cannot decode it; no web downloads/crossfade |
 | Remote appearance config (admin → apps within ~30 s) | ✅ Implemented | Backend integration tests; admin render tests; verified end-to-end with the web player |
 | Admin user management, metadata lookup (MusicBrainz) | ✅ Implemented | Integration tests with mocked MusicBrainz; response shapes checked against the live API once. No audio is downloaded from YouTube or other services |
 | 10-band equalizer | ✅ Web verified in a browser; iOS compiled + DSP unit-tested, **not heard on a device** | iOS uses an MTAudioProcessingTap on music items (not on HLS video audio / AirPlay) |
 | iOS features on a real device (audio, background, lock screen, Bluetooth, AirPlay, PiP, downloads) | ⚠️ Implemented, **not device-tested** | Requires a physical iPhone; see checklist below |
 | CarPlay | ⚠️ Implemented, **blocked** on Apple entitlement | Needs `com.apple.developer.carplay-audio` approved for your team |
-| Sign in with Apple | ⚠️ Implemented, not exercised | Needs an Apple Developer team, Services ID, and `APPLE_CLIENT_IDS` |
+| Google sign-in (iOS, web) | ⚠️ Implemented, not exercised against real Google | Backend verification integration-tested with locally signed tokens; needs OAuth client IDs (`GOOGLE_IOS_CLIENT_ID`, `GOOGLE_WEB_CLIENT_ID`). Sign in with Apple was removed |
 | Signed IPA / TestFlight / App Store | ⛔ Blocked | Needs signing certificate + provisioning profile; scripts provided |
 
 ## Feature checklist
@@ -42,7 +42,7 @@ in this repository's environment; the evidence column says which.
 - [x] Roles user/editor/admin enforced server-side; last-admin protection
 - [x] Profile, avatar (magic-byte validated), preferences sync, data export, account deletion, session list/revoke
 - [x] Rate limiting (Redis-backed), audit log, structured logs with secret redaction
-- [~] Sign in with Apple — server verification + client button implemented; untested against Apple
+- [~] Google sign-in — server verification tested with locally signed tokens; iOS (ASWebAuthenticationSession + PKCE) and web (OIDC redirect) untested against real Google
 
 ### Catalog, search, discovery
 - [x] Artists (top tracks, chronological albums/singles/compilations, videos, related, follow)

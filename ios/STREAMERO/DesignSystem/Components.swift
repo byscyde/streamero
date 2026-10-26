@@ -91,7 +91,7 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
-/// Outlined pill ("Shuffle", "Radio", "Continue with Apple").
+/// Outlined pill ("Shuffle", "Radio", "Continue with Google").
 struct SecondaryButtonStyle: ButtonStyle {
     var fullWidth = false
     var height: CGFloat = 40

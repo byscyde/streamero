@@ -48,7 +48,7 @@ reviewable diffs). CI and the build scripts run `xcodegen generate`.
 
 **ADR-013 — Unsigned IPA for sideloading.** The primary distribution path requested is Feather. CI builds with
 `CODE_SIGNING_ALLOWED=NO` and packages `Payload/STREAMERO.app` into an IPA; the sideloading tool signs it with the
-user's certificate. Entitlement-gated features (CarPlay, Sign in with Apple) depend on that certificate's profile.
+user's certificate. Entitlement-gated features (CarPlay) depend on that certificate's profile.
 
 **ADR-014 — Two-deck audio engine.** AVQueuePlayer gives gapless transitions when the next item is pre-queued.
 Crossfade needs two simultaneously playing players, so a second deck plays the next track while volumes follow an

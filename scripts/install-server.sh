@@ -116,7 +116,9 @@ APP_LINK_BASE=https://app.streamero.net/
 # Optional: folder on this server to import music from (mounted read-only into the worker as /import)
 IMPORT_ALLOWED_DIRS=
 IMPORT_ALLOWED_HOSTS=
-APPLE_CLIENT_IDS=
+# Optional: Google sign-in (OAuth client IDs from console.cloud.google.com)
+GOOGLE_IOS_CLIENT_ID=
+GOOGLE_WEB_CLIENT_ID=
 YOUTUBE_API_KEY=
 WORKER_CONCURRENCY=1
 WORKER_CPUS=2

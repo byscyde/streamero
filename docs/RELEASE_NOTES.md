@@ -6,8 +6,8 @@
    Biblioteka i novi sadržaj sinkroniziraju se automatski svakih 30 s dok je aplikacija otvorena.
 
 Ovo je **nepotpisan** IPA — Feather (ili AltStore/SideStore/Sideloadly) ga potpisuje tvojim certifikatom.
-CarPlay i Sign in with Apple rade samo s certifikatom koji ima te Appleove dozvole; sve ostalo
-(glazba u pozadini, lock screen, AirPlay, PiP, offline downloadi, prijava emailom) radi s bilo kojim certifikatom.
+CarPlay radi samo s certifikatom koji ima tu Appleovu dozvolu; sve ostalo (glazba u pozadini, lock screen,
+AirPlay, PiP, offline downloadi, prijava emailom i Google računom) radi s bilo kojim certifikatom.
 
 ## 🖥️ Server
 

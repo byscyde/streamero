@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { hash, verify } from '@node-rs/argon2';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
@@ -33,7 +33,7 @@ export interface PublicUser {
   avatarUrl: string | null;
 }
 
-const appleJwks = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
+const googleJwks = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'));
 
 @Injectable()
 export class AuthService {
@@ -243,38 +243,41 @@ export class AuthService {
     await this.audit.record({ actorId: userId, action: 'auth.password_changed' });
   }
 
-  /** Verifies an Apple identity token against Apple's published keys and links or creates the account. */
-  async signInWithApple(identityToken: string, nonce: string | undefined, displayName: string | undefined, ua?: string) {
-    if (this.config.APPLE_CLIENT_IDS.length === 0) {
-      throw new AppError(HttpStatus.NOT_IMPLEMENTED, 'apple_not_configured', 'Sign in with Apple is not configured on this server');
+  /** Verifies a Google ID token against Google's published keys and links or creates the account. */
+  async signInWithGoogle(idToken: string, nonce: string | undefined, ua?: string) {
+    const audience = [this.config.GOOGLE_IOS_CLIENT_ID, this.config.GOOGLE_WEB_CLIENT_ID].filter(Boolean);
+    if (audience.length === 0) {
+      throw new AppError(HttpStatus.NOT_IMPLEMENTED, 'google_not_configured', 'Google sign-in is not configured on this server');
     }
     let payload: any;
     try {
-      ({ payload } = await jwtVerify(identityToken, appleJwks, {
-        issuer: 'https://appleid.apple.com',
-        audience: this.config.APPLE_CLIENT_IDS,
-      }));
+      ({ payload } = await jwtVerify(idToken, googleJwks, { issuer: ['https://accounts.google.com', 'accounts.google.com'], audience }));
     } catch {
-      throw unauthorized('invalid_apple_token', 'Apple identity token could not be verified');
+      throw unauthorized('invalid_google_token', 'Google ID token could not be verified');
     }
-    if (nonce && payload.nonce !== createHash('sha256').update(nonce).digest('hex')) {
-      throw unauthorized('invalid_apple_token', 'Nonce mismatch');
+    if (nonce !== undefined && payload.nonce !== nonce) throw unauthorized('invalid_google_token', 'Nonce mismatch');
+    const emailVerified = payload.email_verified === true || payload.email_verified === 'true';
+    if (typeof payload.email !== 'string' || !emailVerified) {
+      throw unauthorized('invalid_google_token', 'Google account has no verified email address');
     }
     const sub = String(payload.sub);
-    const email = typeof payload.email === 'string' ? payload.email : `${sub}@privaterelay.appleid.com`;
-    const emailVerified = payload.email_verified === true || payload.email_verified === 'true';
+    const email = payload.email.toLowerCase();
+    const displayName = typeof payload.name === 'string' && payload.name.trim() ? payload.name.trim().slice(0, 80) : email.split('@')[0];
     const user = await this.db.tx(async (client) => {
-      const bySub = await this.db.one('SELECT * FROM users WHERE apple_sub = $1', [sub], client);
+      const bySub = await this.db.one('SELECT * FROM users WHERE google_sub = $1', [sub], client);
       if (bySub) return bySub;
-      // Link to an existing email account only when Apple asserts the email is verified.
-      const byEmail = emailVerified ? await this.db.one('SELECT * FROM users WHERE email = $1 FOR UPDATE', [email], client) : null;
+      // Google asserts the address is verified, so an existing email account is linked rather than duplicated.
+      const byEmail = await this.db.one('SELECT * FROM users WHERE lower(email) = $1 FOR UPDATE', [email], client);
       if (byEmail) {
-        return this.db.one('UPDATE users SET apple_sub = $2 WHERE id = $1 RETURNING *', [byEmail.id, sub], client);
+        return this.db.one(
+          'UPDATE users SET google_sub = $2, email_verified_at = coalesce(email_verified_at, now()) WHERE id = $1 RETURNING *',
+          [byEmail.id, sub],
+          client,
+        );
       }
       return this.db.one(
-        `INSERT INTO users (email, display_name, apple_sub, email_verified_at)
-         VALUES ($1, $2, $3, CASE WHEN $4 THEN now() END) RETURNING *`,
-        [email, displayName?.trim() || 'Listener', sub, emailVerified],
+        'INSERT INTO users (email, display_name, google_sub, email_verified_at) VALUES ($1, $2, $3, now()) RETURNING *',
+        [email, displayName, sub],
         client,
       );
     });

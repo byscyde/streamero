@@ -234,7 +234,30 @@ MAIL_FROM="STREAMERO <no-reply@scyde.dev>"
 Da mailovi ne završe u spamu, za domenu `scyde.dev` u DNS-u moraju postojati SPF i DKIM zapisi tvog providera.
 Bez SMTP-a sve radi, osim slanja tih emailova.
 
-Opcionalno u `.env`: `YOUTUBE_API_KEY=` (YouTube pretraga u aplikaciji), `APPLE_CLIENT_IDS=` (Sign in with Apple).
+Opcionalno u `.env`: `YOUTUBE_API_KEY=` (YouTube pretraga u aplikaciji).
+
+## Prijava preko Google računa
+
+Email prijava radi odmah. Za gumb **Continue with Google** (iPhone aplikacija i web player):
+
+1. Otvori https://console.cloud.google.com → napravi projekt (npr. *STREAMERO*).
+2. **APIs & Services → OAuth consent screen**: tip *External*, naziv aplikacije STREAMERO, support email,
+   domena `streamero.net`; scope-ovi `openid`, `email`, `profile`. Objavi (*Publish app*) da se mogu prijaviti svi,
+   a ne samo testni korisnici.
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID**, dva puta:
+   - tip **iOS**, Bundle ID `com.scyde.streamero` → kopiraj *Client ID*;
+   - tip **Web application**, *Authorized JavaScript origins*: `https://app.streamero.net`,
+     *Authorized redirect URIs*: `https://app.streamero.net/auth/google` → kopiraj *Client ID*
+     (Client secret ne treba).
+4. U `/opt/streamero/.env`:
+   ```
+   GOOGLE_IOS_CLIENT_ID=123456-abc.apps.googleusercontent.com
+   GOOGLE_WEB_CLIENT_ID=123456-xyz.apps.googleusercontent.com
+   ```
+5. `sudo ./scripts/install-server.sh` (primijeni promjene). Gumb se u aplikacijama pojavi sam u roku od ~30 s —
+   nova verzija aplikacije nije potrebna. U adminu (*Appearance → Features → Google sign-in*) ga možeš i isključiti.
+
+Ako se netko prijavi Googleom s istim emailom koji već ima račun, prijava se poveže s tim računom.
 
 ## 11. Backup i ažuriranje
 

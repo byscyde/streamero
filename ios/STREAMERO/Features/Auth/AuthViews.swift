@@ -1,5 +1,3 @@
-import AuthenticationServices
-import CryptoKit
 import StreameroCore
 import SwiftUI
 
@@ -13,7 +11,8 @@ struct AuthFlowView: View {
     @State private var busy = false
     @State private var message: String?
     @State private var isError = false
-    @State private var appleNonce = ""
+    @State private var googleBusy = false
+    @State private var google = GoogleSignInController()
 
     var body: some View {
         Group {
@@ -44,8 +43,8 @@ struct AuthFlowView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 AnnouncementBanner().padding(.horizontal, -Theme.Spacing.screen)
 
-                if features.appleSignIn {
-                    appleButton.padding(.top, Theme.Spacing.l)
+                if let googleClientId = AppearanceStore.shared.config.googleSignInClientId {
+                    googleButton(clientId: googleClientId).padding(.top, Theme.Spacing.l)
                 }
 
                 if features.signup {
@@ -109,18 +108,27 @@ struct AuthFlowView: View {
 
     private var emailLooksValid: Bool { email.contains("@") && email.contains(".") }
 
-    private var appleButton: some View {
-        SignInWithAppleButton(.continue) { request in
-            appleNonce = randomNonce()
-            request.requestedScopes = [.fullName, .email]
-            request.nonce = sha256(appleNonce)
-        } onCompletion: { result in
-            handleApple(result)
+    private func googleButton(clientId: String) -> some View {
+        Button { signInWithGoogle(clientId: clientId) } label: {
+            HStack(spacing: Theme.Spacing.m) {
+                if googleBusy {
+                    ProgressView().tint(Theme.Palette.textPrimary)
+                } else {
+                    Text("G")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Theme.Palette.textPrimary)
+                        .frame(width: 26, height: 26)
+                        .overlay(Circle().strokeBorder(Theme.Palette.textPrimary, lineWidth: 1.5))
+                        .accessibilityHidden(true)
+                }
+                Text("Continue with Google")
+            }
+            .font(.system(size: 17, weight: .medium))
         }
-        .signInWithAppleButtonStyle(.black)
-        .frame(height: 52)
-        .clipShape(Capsule())
-        .overlay(Capsule().strokeBorder(Theme.Palette.textPrimary.opacity(0.85), lineWidth: 1.2))
+        .buttonStyle(SecondaryButtonStyle(fullWidth: true, height: 52))
+        .disabled(googleBusy || busy)
+        .accessibilityLabel("Continue with Google")
+        .accessibilityIdentifier("googleSignInButton")
     }
 
     // MARK: Forms
@@ -285,20 +293,20 @@ struct AuthFlowView: View {
         }
     }
 
-    private func handleApple(_ result: Result<ASAuthorization, Error>) {
-        guard case .success(let auth) = result, let cred = auth.credential as? ASAuthorizationAppleIDCredential,
-              let tokenData = cred.identityToken, let token = String(data: tokenData, encoding: .utf8), let api = model.api else {
-            if case .failure(let e) = result, (e as? ASAuthorizationError)?.code != .canceled { isError = true; message = e.localizedDescription }
-            return
-        }
-        let displayName = [cred.fullName?.givenName, cred.fullName?.familyName].compactMap { $0 }.joined(separator: " ")
-        busy = true
+    private func signInWithGoogle(clientId: String) {
+        guard let api = model.api, !googleBusy else { return }
+        googleBusy = true
+        message = nil
         Task {
-            defer { busy = false }
+            defer { googleBusy = false }
             do {
-                let s = try await api.signInWithApple(identityToken: token, nonce: appleNonce, displayName: displayName.isEmpty ? nil : displayName)
+                let s = try await google.signIn(clientId: clientId, api: api)
                 await model.didSignIn(s)
+                Haptics.success()
+            } catch GoogleOAuth.OAuthError.cancelled {
+                return
             } catch {
+                Haptics.error()
                 isError = true
                 message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }
@@ -317,16 +325,6 @@ extension View {
             .background(Theme.Palette.surfaceHighlight, in: Capsule())
             .overlay(Capsule().strokeBorder(Theme.Palette.border.opacity(0.6), lineWidth: 1))
     }
-}
-
-private func randomNonce(length: Int = 32) -> String {
-    let chars = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-    var rng = SystemRandomNumberGenerator()
-    return String((0..<length).map { _ in chars.randomElement(using: &rng)! })
-}
-
-private func sha256(_ s: String) -> String {
-    SHA256.hash(data: Data(s.utf8)).map { String(format: "%02x", $0) }.joined()
 }
 
 /// Handles streamero://verify-email and streamero://reset-password links from emails.

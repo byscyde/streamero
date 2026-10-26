@@ -502,7 +502,7 @@ export class AdminService {
       tokens: { accessTtlSeconds: c.ACCESS_TOKEN_TTL_SECONDS, refreshTtlDays: c.REFRESH_TOKEN_TTL_DAYS, mediaUrlTtlSeconds: c.MEDIA_URL_TTL_SECONDS },
       media: { maxUploadBytes: c.MAX_UPLOAD_BYTES, ffmpegThreads: c.FFMPEG_THREADS, workerConcurrency: c.WORKER_CONCURRENCY, timeoutSeconds: c.FFMPEG_TIMEOUT_SECONDS },
       imports: { allowedHosts: c.IMPORT_ALLOWED_HOSTS, allowedDirs: c.IMPORT_ALLOWED_DIRS },
-      integrations: { smtp: !!c.SMTP_URL, signInWithApple: c.APPLE_CLIENT_IDS.length > 0, youtube: !!c.YOUTUBE_API_KEY },
+      integrations: { smtp: !!c.SMTP_URL, googleSignIn: !!(c.GOOGLE_IOS_CLIENT_ID || c.GOOGLE_WEB_CLIENT_ID), youtube: !!c.YOUTUBE_API_KEY },
     };
   }
 }

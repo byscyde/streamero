@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { Inject, Injectable } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service.js';
 import { badRequest } from '../common/errors.js';
+import { APP_CONFIG, type AppConfig } from '../config/config.js';
 import { DbService } from '../db/db.service.js';
 import { appearancePatchSchema, DEFAULT_APPEARANCE, mergeAppearance, type AppearanceResponse } from './appconfig.schema.js';
 
@@ -24,15 +26,26 @@ export class AppConfigService {
   constructor(
     private readonly db: DbService,
     private readonly audit: AuditService,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
+
+  /** Server-side sign-in settings (from env, not editable); part of the version so clients notice changes. */
+  private withAuth(doc: AppearanceResponse) {
+    const auth = {
+      googleIosClientId: this.config.GOOGLE_IOS_CLIENT_ID || null,
+      googleWebClientId: this.config.GOOGLE_WEB_CLIENT_ID || null,
+    };
+    const version = createHash('sha256').update(doc.version + JSON.stringify(auth)).digest('hex').slice(0, 16);
+    return { ...doc, version, auth };
+  }
 
   private async stored(): Promise<Record<string, unknown>> {
     const row = await this.db.one<{ value: unknown }>('SELECT value FROM app_settings WHERE key = $1', [APPEARANCE_KEY]);
     return isPlainObject(row?.value) ? row.value : {};
   }
 
-  async get(): Promise<AppearanceResponse> {
-    return mergeAppearance(await this.stored());
+  async get() {
+    return this.withAuth(mergeAppearance(await this.stored()));
   }
 
   async version(): Promise<string> {
@@ -44,9 +57,9 @@ export class AppConfigService {
   }
 
   /** Accepts a full or partial document. `version` and `defaults` (echoed back from GET) are ignored. */
-  async update(actorId: string, body: unknown, ip?: string): Promise<AppearanceResponse> {
+  async update(actorId: string, body: unknown, ip?: string) {
     if (!isPlainObject(body)) throw badRequest('validation_failed', 'Body must be a JSON object');
-    const { version: _v, defaults: _d, ...rest } = body;
+    const { version: _v, defaults: _d, auth: _a, ...rest } = body;
     const parsed = appearancePatchSchema.safeParse(rest);
     if (!parsed.success) {
       throw badRequest(
@@ -66,7 +79,7 @@ export class AppConfigService {
         [APPEARANCE_KEY, JSON.stringify(value), actorId],
         client,
       );
-      const merged = mergeAppearance(value);
+      const merged = this.withAuth(mergeAppearance(value));
       const fields = Object.entries(patch).flatMap(([s, v]) => Object.keys(v as object).map((f) => `${s}.${f}`));
       await this.audit.record(
         { actorId, action: 'appearance.update', targetType: 'app_settings', targetId: APPEARANCE_KEY, metadata: { fields, from: before.version, to: merged.version }, ip },
@@ -77,7 +90,7 @@ export class AppConfigService {
     return next;
   }
 
-  async reset(actorId: string, ip?: string): Promise<AppearanceResponse> {
+  async reset(actorId: string, ip?: string) {
     const before = await this.get();
     await this.db.query('DELETE FROM app_settings WHERE key = $1', [APPEARANCE_KEY]);
     const after = await this.get();

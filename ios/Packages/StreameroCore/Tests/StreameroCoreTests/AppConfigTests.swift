@@ -32,7 +32,7 @@ final class AppConfigTests: XCTestCase {
         XCTAssertEqual(d.home.chips, ["All", "Music", "Videos"])
         XCTAssertEqual(d.home.sectionsOrder.first, "recommended_playlists")
         XCTAssertEqual(d.home.sectionsOrder.count, 8)
-        XCTAssertTrue(d.features.equalizer && d.features.signup && d.features.appleSignIn && d.features.videos)
+        XCTAssertTrue(d.features.equalizer && d.features.signup && d.features.googleSignIn && d.features.videos)
         XCTAssertFalse(d.announcement.enabled)
         XCTAssertFalse(d.announcement.isVisible)
         XCTAssertTrue(d.texts.homeGreeting)

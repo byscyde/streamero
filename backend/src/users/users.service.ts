@@ -42,7 +42,7 @@ export class UsersService {
       historyEnabled: u.history_enabled,
       personalizationEnabled: u.personalization_enabled,
       hasPassword: !!u.password_hash,
-      appleLinked: !!u.apple_sub,
+      googleLinked: !!u.google_sub,
       preferences: u.preferences,
       preferencesVersion: u.preferences_version,
       createdAt: u.created_at,

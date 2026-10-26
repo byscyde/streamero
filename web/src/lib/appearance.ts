@@ -28,9 +28,11 @@ export interface AppConfig {
     equalizer: boolean;
     radio: boolean;
     signup: boolean;
-    appleSignIn: boolean;
+    googleSignIn: boolean;
   };
   announcement: { enabled: boolean; text: string; style: 'info' | 'warning' | 'success' };
+  /** Server-provided OAuth client ids (read-only, from the server .env; not part of the editable document). */
+  auth: { googleIosClientId: string | null; googleWebClientId: string | null };
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -58,15 +60,16 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
   texts: {
     welcomeTitle: 'Discover your music,\npersonalize your experience',
-    welcomeSubtitle: 'Use your email or Apple ID to continue with STREAMERO.',
+    welcomeSubtitle: 'Use your email or Google account to continue with STREAMERO.',
     homeGreeting: true,
   },
   home: {
     chips: ['All', 'Music', 'Videos'],
     sectionsOrder: ['recommended_playlists', 'genres', 'top_artists', 'new_albums', 'popular_singles', 'recently_played', 'made_for_you', 'music_videos'],
   },
-  features: { videos: true, youtube: true, lyrics: true, downloads: true, equalizer: true, radio: true, signup: true, appleSignIn: true },
+  features: { videos: true, youtube: true, lyrics: true, downloads: true, equalizer: true, radio: true, signup: true, googleSignIn: true },
   announcement: { enabled: false, text: '', style: 'info' },
+  auth: { googleIosClientId: null, googleWebClientId: null },
 };
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -101,8 +104,11 @@ export function mergeConfig(raw: unknown): AppConfig {
     home: pick(DEFAULT_CONFIG.home, r.home),
     features: pick(DEFAULT_CONFIG.features, r.features),
     announcement: pick(DEFAULT_CONFIG.announcement, r.announcement),
+    auth: { googleIosClientId: clientId(r.auth?.googleIosClientId), googleWebClientId: clientId(r.auth?.googleWebClientId) },
   };
 }
+
+const clientId = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
 export const TITLE_FONTS: Record<AppConfig['theme']['titleFont'], string> = {
   mono: "'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Consolas, 'Liberation Mono', monospace",

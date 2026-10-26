@@ -23,7 +23,7 @@
   },
   "texts": {
     "welcomeTitle": "Discover your music,\npersonalize your experience",
-    "welcomeSubtitle": "Use your email or Apple ID to continue with STREAMERO.",
+    "welcomeSubtitle": "Use your email or Google account to continue with STREAMERO.",
     "homeGreeting": true
   },
   "home": {
@@ -33,7 +33,8 @@
   },
   "features": {
     "videos": true, "youtube": true, "lyrics": true, "downloads": true,
-    "equalizer": true, "radio": true, "signup": true, "appleSignIn": true
+    "equalizer": true, "radio": true, "signup": true, "googleSignIn": true
   },
-  "announcement": { "enabled": false, "text": "", "style": "info" }
+  "announcement": { "enabled": false, "text": "", "style": "info" },
+  "auth": { "googleIosClientId": null, "googleWebClientId": null }
 }

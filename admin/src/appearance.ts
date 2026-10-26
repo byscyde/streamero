@@ -32,7 +32,7 @@ export interface Appearance {
     equalizer: boolean;
     radio: boolean;
     signup: boolean;
-    appleSignIn: boolean;
+    googleSignIn: boolean;
   };
   announcement: { enabled: boolean; text: string; style: AnnouncementStyle };
 }
@@ -62,14 +62,14 @@ export const DEFAULT_APPEARANCE: Appearance = {
   },
   texts: {
     welcomeTitle: 'Discover your music,\npersonalize your experience',
-    welcomeSubtitle: 'Use your email or Apple ID to continue with STREAMERO.',
+    welcomeSubtitle: 'Use your email or Google account to continue with STREAMERO.',
     homeGreeting: true,
   },
   home: {
     chips: ['All', 'Music', 'Videos'],
     sectionsOrder: ['recommended_playlists', 'genres', 'top_artists', 'new_albums', 'popular_singles', 'recently_played', 'made_for_you', 'music_videos'],
   },
-  features: { videos: true, youtube: true, lyrics: true, downloads: true, equalizer: true, radio: true, signup: true, appleSignIn: true },
+  features: { videos: true, youtube: true, lyrics: true, downloads: true, equalizer: true, radio: true, signup: true, googleSignIn: true },
   announcement: { enabled: false, text: '', style: 'info' },
 };
 
@@ -105,7 +105,10 @@ export const FEATURE_LABELS: Record<keyof Appearance['features'], { label: strin
   equalizer: { label: 'Equalizer', hint: 'Equalizer settings' },
   radio: { label: 'Radio', hint: 'Artist and track radio' },
   signup: { label: 'Sign-up', hint: 'New accounts can register themselves' },
-  appleSignIn: { label: 'Sign in with Apple', hint: 'Apple ID button on the welcome screen' },
+  googleSignIn: {
+    label: 'Google sign-in',
+    hint: '“Continue with Google” on the welcome and log-in screens. Also requires GOOGLE_WEB_CLIENT_ID / GOOGLE_IOS_CLIENT_ID in the server .env',
+  },
 };
 
 /** Text length limits enforced in the form (kept conservative; the server validates too). */
@@ -150,18 +153,35 @@ export function deepMerge<T>(base: T, over: unknown): T {
   return out as T;
 }
 
-/** Builds a complete document from whatever the server returned, falling back to the defaults. */
-export function mergeAppearance(doc: unknown, defaults: Appearance = DEFAULT_APPEARANCE): Appearance {
-  const merged = deepMerge(structuredClone(defaults), isObj(doc) ? doc : {});
-  // Keep only known top-level keys (the admin response also carries `defaults`).
-  const { version, brand, theme, texts, home, features, announcement } = merged;
-  return { ...(version ? { version } : {}), brand, theme, texts, home, features, announcement };
+const SECTIONS = ['brand', 'theme', 'texts', 'home', 'features', 'announcement'] as const;
+
+/** Keeps only the editable sections and, inside each, only the keys this editor knows (the server rejects unknown keys). */
+function pruneToSchema(doc: Record<string, unknown>): Omit<Appearance, 'version'> {
+  const out: Record<string, unknown> = {};
+  for (const sec of SECTIONS) {
+    const src = isObj(doc[sec]) ? (doc[sec] as Record<string, unknown>) : {};
+    const known = DEFAULT_APPEARANCE[sec] as Record<string, unknown>;
+    const pruned: Record<string, unknown> = {};
+    for (const k of Object.keys(known)) pruned[k] = k in src ? src[k] : known[k];
+    out[sec] = pruned;
+  }
+  return out as unknown as Omit<Appearance, 'version'>;
 }
 
-/** Body for PUT /v1/admin/appearance: the full document without `version`. */
+/**
+ * Builds a complete document from whatever the server returned, falling back to the defaults. Unknown
+ * top-level keys (`defaults`, the read-only `auth` block) and retired keys such as `features.appleSignIn`
+ * are dropped.
+ */
+export function mergeAppearance(doc: unknown, defaults: Appearance = DEFAULT_APPEARANCE): Appearance {
+  const merged = deepMerge(structuredClone(defaults), isObj(doc) ? doc : {}) as Appearance & Record<string, unknown>;
+  const version = merged.version;
+  return { ...(version ? { version } : {}), ...pruneToSchema(merged) };
+}
+
+/** Body for PUT /v1/admin/appearance: the editable document without `version`, `defaults` or `auth`. */
 export function toSaveBody(a: Appearance): Omit<Appearance, 'version'> {
-  const { version: _v, ...rest } = a;
-  return structuredClone(rest);
+  return structuredClone(pruneToSchema(a as unknown as Record<string, unknown>));
 }
 
 /** Lists leaf paths whose values differ (arrays are compared as a whole). `version` is ignored. */

@@ -243,11 +243,12 @@ public extension APIClient {
         return s
     }
 
-    func signInWithApple(identityToken: String, nonce: String?, displayName: String?) async throws -> Session {
-        var body = ["identityToken": identityToken]
+    /// Exchanges a Google ID token (obtained via the OAuth authorization-code + PKCE flow) for a session.
+    func signInWithGoogle(idToken: String, nonce: String?, deviceName: String? = nil) async throws -> Session {
+        var body = ["idToken": idToken]
         if let nonce { body["nonce"] = nonce }
-        if let displayName { body["displayName"] = displayName }
-        let s: Session = try await send(.json("POST", "v1/auth/apple", body, requiresAuth: false))
+        body["deviceName"] = deviceName ?? userAgent
+        let s: Session = try await send(.json("POST", "v1/auth/google", body, requiresAuth: false))
         await auth.update(AuthTokens(session: s))
         return s
     }

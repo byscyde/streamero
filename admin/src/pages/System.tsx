@@ -100,6 +100,13 @@ export function HomeSections() {
   );
 }
 
+/** Labels for `integrations` in GET /v1/admin/config; unknown keys are shown as-is. */
+export const INTEGRATION_LABELS: Record<string, string> = {
+  googleSignIn: 'Google sign-in (GOOGLE_WEB_CLIENT_ID / GOOGLE_IOS_CLIENT_ID)',
+  youtube: 'YouTube',
+  smtp: 'Email (SMTP)',
+};
+
 export function SystemHealth() {
   const { data, error, loading } = useAsync(() => api.get<any>('/v1/admin/system'), [], { pollMs: 10000 });
   const config = useAsync(() => api.get<any>('/v1/admin/config'), []);
@@ -126,6 +133,18 @@ export function SystemHealth() {
       )}
       {config.data && (
         <>
+          {config.data.integrations && typeof config.data.integrations === 'object' && (
+            <>
+              <h2>Integrations</h2>
+              <div className="row">
+                {Object.entries(config.data.integrations as Record<string, unknown>).map(([k, v]) => (
+                  <span className={`badge ${typeof v === 'boolean' ? (v ? 'ok' : '') : ''}`} key={k} title={k}>
+                    {INTEGRATION_LABELS[k] ?? k}: {typeof v === 'boolean' ? (v ? 'configured' : 'off') : String(v)}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
           <h2>Configuration (non-secret)</h2>
           <pre className="log">{JSON.stringify(config.data, null, 2)}</pre>
         </>

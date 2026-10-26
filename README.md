@@ -33,8 +33,8 @@ and provisioning profile during installation.
    (compiled in via `STREAMERO_SERVER_URL`; users never see or enter it) and syncs library changes and new
    content every 30 seconds while it is open.
 
-What works when re-signed with a normal (non-entitled) certificate: everything except **CarPlay** and
-**Sign in with Apple**, which need entitlements only Apple can grant to your team
+What works when re-signed with a normal (non-entitled) certificate: everything except **CarPlay**,
+which needs an entitlement only Apple can grant to your team. Email and Google sign-in work with any certificate
 (see [`docs/CARPLAY.md`](docs/CARPLAY.md)). Background audio, lock-screen controls, AirPlay, Picture in
 Picture and downloads need no special entitlement. Full details: [`docs/IOS_BUILD.md`](docs/IOS_BUILD.md).
 

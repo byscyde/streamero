@@ -5,7 +5,7 @@ import type { Request } from 'express';
 import type { AuthUser } from '../common/auth-user.js';
 import { CurrentUser, Public } from '../common/decorators.js';
 import {
-  AppleSignInDto,
+  GoogleSignInDto,
   ChangePasswordDto,
   EmailDto,
   LoginDto,
@@ -104,9 +104,9 @@ export class AuthController {
 
   @Public()
   @Throttle(STRICT)
-  @Post('apple')
+  @Post('google')
   @HttpCode(200)
-  apple(@Body() dto: AppleSignInDto, @Req() req: Request) {
-    return this.auth.signInWithApple(dto.identityToken, dto.nonce, dto.displayName, req.headers['user-agent']);
+  google(@Body() dto: GoogleSignInDto, @Req() req: Request) {
+    return this.auth.signInWithGoogle(dto.idToken, dto.nonce, req.headers['user-agent']);
   }
 }

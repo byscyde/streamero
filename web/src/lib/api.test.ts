@@ -42,6 +42,19 @@ describe('ApiClient auth', () => {
     expect(calls[0].body.deviceName).toBe('STREAMERO Web');
   });
 
+  it('exchanges a Google ID token for a session', async () => {
+    const { client, storage, calls } = setup((c) => (c.url.endsWith('/v1/auth/google') ? json(200, session(7)) : json(200, {})));
+    await client.googleLogin('id.tok.en', 'n0nce');
+    expect(calls[0]).toMatchObject({ method: 'POST', auth: undefined, body: { idToken: 'id.tok.en', nonce: 'n0nce', deviceName: 'STREAMERO Web' } });
+    expect(storage.get()).toBe('rt7');
+  });
+
+  it('surfaces Google sign-in error codes', async () => {
+    const { client, storage } = setup(() => json(501, { error: { code: 'google_not_configured', message: 'not configured' } }));
+    await expect(client.googleLogin('t', 'n')).rejects.toMatchObject({ status: 501, code: 'google_not_configured' });
+    expect(storage.get()).toBeNull();
+  });
+
   it('refreshes before a request when the access token is about to expire', async () => {
     let t = 0;
     const { client, calls, storage } = setup(

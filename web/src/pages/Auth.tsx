@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { IconArrowRight } from '../components/Icons';
 import { api, ApiError } from '../lib/api';
+import { beginGoogleSignIn, googleWebClientId, parseCallbackHash, takePending, validateCallback, type CallbackFailure } from '../lib/googleAuth';
 import { signedIn, useApp, useConfig } from '../state/app';
 import { errorText, toast } from '../state/store';
 
@@ -36,6 +37,42 @@ function FormError({ error }: { error: string | null }) {
   ) : null;
 }
 
+/** "Continue with Google": full-page redirect to Google (OIDC implicit flow, no third-party script). */
+function GoogleButton({ returnTo, divider }: { returnTo?: string | null; divider?: string }) {
+  const cfg = useConfig();
+  const [busy, setBusy] = useState(false);
+  const clientId = googleWebClientId(cfg);
+  if (!clientId) return null;
+  return (
+    <>
+      {divider && (
+        <div className="divider">
+          <span>{divider}</span>
+        </div>
+      )}
+      <button
+        type="button"
+        className="pill auth-provider"
+        disabled={busy}
+        onClick={() => {
+          try {
+            setBusy(true);
+            beginGoogleSignIn({ clientId, origin: location.origin, returnTo, storage: sessionStorage, assign: (u) => location.assign(u) });
+          } catch {
+            setBusy(false);
+            toast('Your browser blocked the storage needed for Google sign-in. Allow site data and try again.', 'error');
+          }
+        }}
+      >
+        <span className="g-glyph" aria-hidden>
+          G
+        </span>
+        {busy ? 'Redirecting to Google…' : 'Continue with Google'}
+      </button>
+    </>
+  );
+}
+
 export function Welcome() {
   const cfg = useConfig();
   const nav = useNavigate();
@@ -47,6 +84,7 @@ export function Welcome() {
       <p className="auth-legal">
         By signing up, I agree to {cfg.brand.appName}’s Terms and Privacy Policy.
       </p>
+      <GoogleButton />
       {cfg.features.signup ? (
         <form
           className="form"
@@ -120,6 +158,7 @@ export function Login() {
           {busy ? 'Signing in…' : 'Log in'}
         </button>
       </form>
+      <GoogleButton returnTo={params.get('next')} divider="or" />
       <p className="auth-alt">
         <Link to={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}>Forgot password?</Link>
       </p>
@@ -192,6 +231,7 @@ export function Signup() {
           {busy ? 'Creating account…' : 'Sign up'}
         </button>
       </form>
+      <GoogleButton divider="or" />
       <p className="auth-alt">
         Already have an account? <Link to="/login">Log in</Link>
       </p>
@@ -340,6 +380,94 @@ export function VerifyEmail() {
       {state === 'error' && <p className="auth-sub">{message || 'This verification link is invalid or has expired.'}</p>}
       <Link className="btn-accent big" to={auth === 'signedIn' ? '/' : '/login'}>
         {auth === 'signedIn' ? 'Continue listening' : 'Log in'}
+      </Link>
+    </AuthShell>
+  );
+}
+
+// ---- Google callback (/auth/google) -----------------------------------------------------------------
+
+type GoogleOutcome = { ok: true; returnTo: string } | { ok: false; title: string; message: string; returnTo: string };
+
+const FAILURE_TEXT: Record<CallbackFailure, [string, string]> = {
+  cancelled: ['Sign-in cancelled', 'Google sign-in was cancelled. You can try again or use your email instead.'],
+  provider_error: ['Google sign-in failed', 'Google couldn’t complete the sign-in. Please try again.'],
+  missing: ['Google sign-in failed', 'This page was opened without a Google response. Start again from the log-in screen.'],
+  invalid_state: ['Google sign-in failed', 'This sign-in attempt couldn’t be verified. Please start again from the log-in screen.'],
+  expired: ['Sign-in expired', 'The sign-in attempt took too long. Please try again.'],
+};
+
+function googleApiError(err: unknown): [string, string] {
+  if (err instanceof ApiError) {
+    if (err.code === 'google_not_configured' || err.status === 501) return ['Google sign-in unavailable', 'Google sign-in isn’t set up on this server yet. Use your email instead.'];
+    if (err.code === 'invalid_google_token' || err.status === 401) return ['Google sign-in failed', 'Your Google account couldn’t be verified. Please try again.'];
+    if (err.code === 'account_disabled' || err.status === 403) return ['Account disabled', 'This account has been disabled. Contact support if you think this is a mistake.'];
+  }
+  return ['Google sign-in failed', errorText(err)];
+}
+
+/** Runs once per page load (the redirect reloads the app), so StrictMode's double effects can't replay it. */
+let googleCallback: Promise<GoogleOutcome> | null = null;
+
+function handleGoogleCallback(): Promise<GoogleOutcome> {
+  if (googleCallback) return googleCallback;
+  const parsed = parseCallbackHash(location.hash);
+  // Drop the ID token from the address bar and history right away.
+  if (location.hash) history.replaceState(history.state, '', location.pathname + location.search);
+  let pending = null;
+  try {
+    pending = takePending(sessionStorage);
+  } catch {
+    /* storage unavailable → invalid_state */
+  }
+  const v = validateCallback(parsed, pending, Date.now());
+  googleCallback = (async (): Promise<GoogleOutcome> => {
+    if (!v.ok) {
+      const [title, message] = FAILURE_TEXT[v.reason];
+      return { ok: false, title, message, returnTo: v.returnTo };
+    }
+    try {
+      const user = await api.googleLogin(v.idToken, v.nonce);
+      await signedIn(user);
+      return { ok: true, returnTo: v.returnTo };
+    } catch (err) {
+      const [title, message] = googleApiError(err);
+      return { ok: false, title, message, returnTo: v.returnTo };
+    }
+  })();
+  return googleCallback;
+}
+
+export function GoogleCallback() {
+  const nav = useNavigate();
+  const [outcome, setOutcome] = useState<GoogleOutcome | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void handleGoogleCallback().then((o) => {
+      if (!alive) return;
+      if (o.ok) nav(o.returnTo, { replace: true });
+      else setOutcome(o);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [nav]);
+  if (!outcome || outcome.ok)
+    return (
+      <AuthShell>
+        <h1 className="auth-title title-font">Signing in…</h1>
+        <p className="auth-sub">Finishing Google sign-in.</p>
+      </AuthShell>
+    );
+  const login = outcome.returnTo !== '/' ? `/login?next=${encodeURIComponent(outcome.returnTo)}` : '/login';
+  return (
+    <AuthShell>
+      <h1 className="auth-title title-font">{outcome.title}</h1>
+      <p className="auth-sub" role="alert">
+        {outcome.message}
+      </p>
+      <Link className="btn-accent big" to={login}>
+        Back to log in
       </Link>
     </AuthShell>
   );

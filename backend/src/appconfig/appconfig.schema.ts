@@ -39,7 +39,7 @@ export const DEFAULT_APPEARANCE = {
   },
   texts: {
     welcomeTitle: 'Discover your music,\npersonalize your experience',
-    welcomeSubtitle: 'Use your email or Apple ID to continue with STREAMERO.',
+    welcomeSubtitle: 'Use your email or Google account to continue with STREAMERO.',
     homeGreeting: true,
   },
   home: {
@@ -54,7 +54,7 @@ export const DEFAULT_APPEARANCE = {
     equalizer: true,
     radio: true,
     signup: true,
-    appleSignIn: true,
+    googleSignIn: true,
   },
   announcement: { enabled: false, text: '', style: 'info' as 'info' | 'warning' | 'success' },
 };
@@ -115,7 +115,7 @@ const FULL_SECTIONS = {
       equalizer: z.boolean(),
       radio: z.boolean(),
       signup: z.boolean(),
-      appleSignIn: z.boolean(),
+      googleSignIn: z.boolean(),
     })
     .strict(),
   announcement: z

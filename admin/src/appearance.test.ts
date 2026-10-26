@@ -61,6 +61,21 @@ describe('merge / diff', () => {
     expect('version' in body).toBe(false);
     expect(body.theme.accent).toBe('#E31E2D');
   });
+  it('drops the read-only auth block and the retired appleSignIn flag, keeping googleSignIn', () => {
+    const m = mergeAppearance({
+      version: 'v3',
+      auth: { googleIosClientId: 'ios', googleWebClientId: 'web' },
+      features: { appleSignIn: false, googleSignIn: false },
+      defaults: { features: { appleSignIn: true } },
+    });
+    expect('auth' in m).toBe(false);
+    expect(m.features).not.toHaveProperty('appleSignIn');
+    expect(m.features.googleSignIn).toBe(false);
+    const body = toSaveBody({ ...m, auth: { googleWebClientId: 'web' }, defaults: {} } as any) as any;
+    expect(Object.keys(body).sort()).toEqual(['announcement', 'brand', 'features', 'home', 'texts', 'theme']);
+    expect(body.features).toEqual({ ...DEFAULT_APPEARANCE.features, googleSignIn: false });
+    expect(DEFAULT_APPEARANCE.features.googleSignIn).toBe(true);
+  });
 });
 
 describe('ordering helpers', () => {

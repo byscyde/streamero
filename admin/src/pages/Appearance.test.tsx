@@ -32,6 +32,8 @@ describe('AppearancePage', () => {
     expect(body.version).toBeUndefined();
     expect(body.theme.accent).toBe('#1DB954');
     expect(body.features).toEqual(DEFAULT_APPEARANCE.features);
+    expect(body.features.appleSignIn).toBeUndefined();
+    expect(body.auth).toBeUndefined();
     await screen.findByText('All changes saved', { exact: false });
   });
 
@@ -43,5 +45,28 @@ describe('AppearancePage', () => {
     expect(screen.getByTestId('phone-preview').style.getPropertyValue('--p-r')).toBe('20px');
     fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
     expect(screen.getByTestId('phone-preview').style.getPropertyValue('--p-r')).toBe('12px');
+  });
+
+  it('toggles Google sign-in in the welcome preview and saves googleSignIn without auth', async () => {
+    vi.spyOn(adminApi.appearance, 'get').mockResolvedValue({
+      ...structuredClone(DEFAULT_APPEARANCE),
+      features: { ...DEFAULT_APPEARANCE.features, appleSignIn: true },
+      auth: { googleIosClientId: 'ios', googleWebClientId: 'web' },
+      version: 'v1',
+    } as any);
+    const save = vi.spyOn(adminApi.appearance, 'save').mockImplementation(async (doc: any) => ({ ...doc, version: 'v2' }));
+    render(<ToastProvider><AppearancePage /></ToastProvider>);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Welcome' }));
+    const phone = screen.getByTestId('phone-preview');
+    expect(phone.textContent).toContain('Continue with Google');
+    expect(phone.textContent).not.toContain('Apple');
+    fireEvent.click(screen.getByRole('switch', { name: /Google sign-in/ }));
+    expect(phone.textContent).not.toContain('Continue with Google');
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    const body = save.mock.calls[0][0] as any;
+    expect(body.features.googleSignIn).toBe(false);
+    expect('appleSignIn' in body.features).toBe(false);
+    expect('auth' in body).toBe(false);
   });
 });

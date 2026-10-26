@@ -51,7 +51,7 @@ TEAM_ID=ABCDE12345 BUNDLE_ID=com.yourco.streamero METHOD=ad-hoc      ./scripts/e
 ```
 
 Prerequisites: Xcode signed into the team, the bundle id registered, device UDIDs in the profile for Ad Hoc,
-and capabilities enabled on the App ID (Background Modes are in Info.plist; CarPlay and Sign in with Apple are in
+and capabilities enabled on the App ID (Background Modes are in Info.plist; CarPlay is in
 `STREAMERO.entitlements` and must be granted to the App ID).
 
 ## 3. TestFlight and App Store (separate release path)

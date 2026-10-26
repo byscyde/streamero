@@ -402,7 +402,7 @@ function PreviewWelcome({ a }: { a: Appearance }) {
       <div className="p-wtitle">{a.texts.welcomeTitle}</div>
       <div className="p-sub" style={{ fontSize: 11 }}>{a.texts.welcomeSubtitle}</div>
       <div className="p-sub" style={{ fontSize: 10 }}>{a.brand.appName} — {a.brand.tagline}</div>
-      {a.features.appleSignIn && <span className="p-outline"> Continue with Apple</span>}
+      {a.features.googleSignIn && <span className="p-outline"><b className="p-g" aria-hidden="true">G</b> Continue with Google</span>}
       <span className="p-label">Email address</span>
       <span className="p-input">Enter your email address</span>
       <span className="p-btn">Next →</span>

@@ -39,7 +39,7 @@
   UUID primary keys, foreign keys everywhere, `RESTRICT` on media originals so media can't be orphaned silently.
 - **Auth**: argon2id passwords; 15-min HS256 access JWTs; opaque 48-byte refresh tokens stored as SHA-256 hashes,
   rotated on every use with family-wide revocation on reuse. The global guard re-reads the user's role and
-  disabled flag from the database on every request. Sign in with Apple verifies identity tokens against Apple's JWKS.
+  disabled flag from the database on every request. Google sign-in verifies ID tokens against Google's JWKS (issuer, audience = configured client IDs, nonce, verified email).
 - **Errors**: `{ error: { code, message, details? }, requestId }` with stable machine codes.
 - **Rate limiting**: `@nestjs/throttler` with a Redis Lua storage shared by all replicas; stricter limits on auth.
 

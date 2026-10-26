@@ -59,7 +59,9 @@ export const configSchema = z
     /** MusicBrainz / Cover Art Archive endpoints (overridable for mirrors). */
     MUSICBRAINZ_BASE_URL: z.string().url().default('https://musicbrainz.org/ws/2'),
     COVERART_BASE_URL: z.string().url().default('https://coverartarchive.org'),
-    APPLE_CLIENT_IDS: csv,
+    /** OAuth client IDs from Google Cloud Console; ID tokens must be issued for one of them. */
+    GOOGLE_IOS_CLIENT_ID: z.string().optional().default(''),
+    GOOGLE_WEB_CLIENT_ID: z.string().optional().default(''),
     YOUTUBE_API_KEY: z.string().optional().default(''),
     BOOTSTRAP_ADMIN_EMAIL: z.string().email().optional(),
     BOOTSTRAP_ADMIN_PASSWORD: z.string().optional().default(''),

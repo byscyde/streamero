@@ -56,7 +56,7 @@ be private; the API serves media through signed URLs.
 
 ### Optional integrations
 
-- Sign in with Apple: `APPLE_CLIENT_IDS=com.yourco.streamero` (the app's bundle id; add a Services ID for web).
+- Google sign-in: `GOOGLE_IOS_CLIENT_ID` (OAuth client of type iOS, bundle id `com.scyde.streamero`) and `GOOGLE_WEB_CLIENT_ID` (type Web application, authorised redirect URI `https://<domain>/auth/google`). The IDs are delivered to the apps through `/v1/app/config`, so no app rebuild is needed.
 - YouTube discovery: `YOUTUBE_API_KEY` (YouTube Data API v3, restricted to that API).
 
 ## Scaling

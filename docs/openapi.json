@@ -236,16 +236,16 @@
         ]
       }
     },
-    "/v1/auth/apple": {
+    "/v1/auth/google": {
       "post": {
-        "operationId": "AuthController_apple",
+        "operationId": "AuthController_google",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AppleSignInDto"
+                "$ref": "#/components/schemas/GoogleSignInDto"
               }
             }
           }
@@ -3112,7 +3112,7 @@
                         "signup": {
                           "type": "boolean"
                         },
-                        "appleSignIn": {
+                        "googleSignIn": {
                           "type": "boolean"
                         }
                       },
@@ -3124,7 +3124,7 @@
                         "equalizer",
                         "radio",
                         "signup",
-                        "appleSignIn"
+                        "googleSignIn"
                       ],
                       "additionalProperties": false
                     },
@@ -3413,7 +3413,7 @@
                         "signup": {
                           "type": "boolean"
                         },
-                        "appleSignIn": {
+                        "googleSignIn": {
                           "type": "boolean"
                         }
                       },
@@ -3425,7 +3425,7 @@
                         "equalizer",
                         "radio",
                         "signup",
-                        "appleSignIn"
+                        "googleSignIn"
                       ],
                       "additionalProperties": false
                     },
@@ -3677,7 +3677,7 @@
                             "signup": {
                               "type": "boolean"
                             },
-                            "appleSignIn": {
+                            "googleSignIn": {
                               "type": "boolean"
                             }
                           },
@@ -3689,7 +3689,7 @@
                             "equalizer",
                             "radio",
                             "signup",
-                            "appleSignIn"
+                            "googleSignIn"
                           ],
                           "additionalProperties": false
                         },
@@ -3956,7 +3956,7 @@
                       "signup": {
                         "type": "boolean"
                       },
-                      "appleSignIn": {
+                      "googleSignIn": {
                         "type": "boolean"
                       }
                     },
@@ -4219,7 +4219,7 @@
                         "signup": {
                           "type": "boolean"
                         },
-                        "appleSignIn": {
+                        "googleSignIn": {
                           "type": "boolean"
                         }
                       },
@@ -4231,7 +4231,7 @@
                         "equalizer",
                         "radio",
                         "signup",
-                        "appleSignIn"
+                        "googleSignIn"
                       ],
                       "additionalProperties": false
                     },
@@ -4522,7 +4522,7 @@
                         "signup": {
                           "type": "boolean"
                         },
-                        "appleSignIn": {
+                        "googleSignIn": {
                           "type": "boolean"
                         }
                       },
@@ -4534,7 +4534,7 @@
                         "equalizer",
                         "radio",
                         "signup",
-                        "appleSignIn"
+                        "googleSignIn"
                       ],
                       "additionalProperties": false
                     },
@@ -6347,23 +6347,23 @@
           "newPassword"
         ]
       },
-      "AppleSignInDto": {
+      "GoogleSignInDto": {
         "type": "object",
         "properties": {
-          "identityToken": {
+          "idToken": {
             "type": "string",
-            "description": "identityToken returned by AuthenticationServices"
+            "description": "ID token (JWT) issued by Google for one of the configured client IDs"
           },
           "nonce": {
             "type": "string",
-            "description": "Raw nonce whose SHA-256 was sent in the Apple request"
+            "description": "Nonce sent in the Google authorization request; must equal the token nonce claim"
           },
-          "displayName": {
+          "deviceName": {
             "type": "string"
           }
         },
         "required": [
-          "identityToken"
+          "idToken"
         ]
       },
       "UpdateProfileDto": {

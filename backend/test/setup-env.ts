@@ -14,4 +14,5 @@ Object.assign(process.env, {
   WORK_DIR: path.join(root, 'work'),
   LOG_LEVEL: 'error',
   FFMPEG_THREADS: '2',
+  GOOGLE_WEB_CLIENT_ID: 'test-web.apps.googleusercontent.com',
 });

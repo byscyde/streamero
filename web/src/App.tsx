@@ -3,7 +3,7 @@ import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigat
 import * as I from './components/Icons';
 import { Artwork, Empty, Spinner } from './components/ui';
 import { ArtistPage, AlbumPage, GenrePage, MixPage, PlaylistPage } from './pages/Catalog';
-import { ForgotPassword, Login, ResetPassword, Signup, VerifyEmail, Welcome } from './pages/Auth';
+import { ForgotPassword, GoogleCallback, Login, ResetPassword, Signup, VerifyEmail, Welcome } from './pages/Auth';
 import { Explore, Search } from './pages/Discover';
 import Home from './pages/Home';
 import Library, { CreatePlaylistButton } from './pages/Library';
@@ -234,6 +234,7 @@ export default function App() {
         <Route path="/welcome" element={<GuestOnly><Welcome /></GuestOnly>} />
         <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
         <Route path="/signup" element={<GuestOnly><Signup /></GuestOnly>} />
+        <Route path="/auth/google" element={<GoogleCallback />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />

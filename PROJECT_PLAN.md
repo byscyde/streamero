@@ -27,7 +27,7 @@ Tagline: *Your Sound. Your Screen. Your World.* Status per item: [IMPLEMENTATION
 
 ## Next steps
 1. Physical-device QA (checklist in IMPLEMENTATION_STATUS.md).
-2. Request the CarPlay audio entitlement; enable Sign in with Apple for the team.
+2. Request the CarPlay audio entitlement; create the Google OAuth client IDs.
 3. Word-level lyric highlighting, timeline-preview thumbnails while scrubbing, collaborator invite UI.
 4. Loudness normalisation (EBU R128 analysis in the worker + per-track gain in the player).
 5. Candidate generation for recommendations at large catalog sizes; optional OpenSearch backend.

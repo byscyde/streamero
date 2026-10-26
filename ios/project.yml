@@ -39,7 +39,6 @@ targets:
       path: STREAMERO/STREAMERO.entitlements
       properties:
         com.apple.developer.carplay-audio: true
-        com.apple.developer.applesignin: [Default]
     info:
       path: STREAMERO/Info.plist
       properties:

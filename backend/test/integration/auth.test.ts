@@ -73,11 +73,6 @@ describe('authentication', () => {
     const login = await ctx.http.post('/v1/auth/login').send({ email: u.email, password: u.password }).expect(403);
     expect(login.body.error.code).toBe('account_disabled');
   });
-
-  it('reports Sign in with Apple as not configured when no client ids are set', async () => {
-    const res = await ctx.http.post('/v1/auth/apple').send({ identityToken: 'x'.repeat(40) }).expect(501);
-    expect(res.body.error.code).toBe('apple_not_configured');
-  });
 });
 
 describe('authorization', () => {

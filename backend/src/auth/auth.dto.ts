@@ -38,12 +38,12 @@ export class ChangePasswordDto {
   @ApiProperty() @IsString() @Matches(PASSWORD_RULE, { message: PASSWORD_MSG }) newPassword: string;
 }
 
-export class AppleSignInDto {
-  @ApiProperty({ description: 'identityToken returned by AuthenticationServices' }) @IsString() @Length(20, 8192) identityToken: string;
-  @ApiPropertyOptional({ description: 'Raw nonce whose SHA-256 was sent in the Apple request' })
+export class GoogleSignInDto {
+  @ApiProperty({ description: 'ID token (JWT) issued by Google for one of the configured client IDs' }) @IsString() @Length(20, 8192) idToken: string;
+  @ApiPropertyOptional({ description: 'Nonce sent in the Google authorization request; must equal the token nonce claim' })
   @IsOptional()
   @IsString()
   @MaxLength(200)
   nonce?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @Length(1, 80) displayName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(120) deviceName?: string;
 }

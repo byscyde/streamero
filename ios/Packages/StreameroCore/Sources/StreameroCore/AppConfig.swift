@@ -13,11 +13,14 @@ public struct AppConfig: Codable, Sendable, Equatable {
     public var home: Home
     public var features: Features
     public var announcement: Announcement
+    /// Sign-in provider settings from the server environment (not editable in the admin console).
+    public var auth: AuthProviders
 
     public init(version: String = "", brand: Brand = Brand(), theme: Theme = Theme(), texts: Texts = Texts(),
-                home: Home = Home(), features: Features = Features(), announcement: Announcement = Announcement()) {
+                home: Home = Home(), features: Features = Features(), announcement: Announcement = Announcement(),
+                auth: AuthProviders = AuthProviders()) {
         self.version = version; self.brand = brand; self.theme = theme; self.texts = texts
-        self.home = home; self.features = features; self.announcement = announcement
+        self.home = home; self.features = features; self.announcement = announcement; self.auth = auth
     }
 
     /// The built-in document (identical to the defaults in docs/APP_CONFIG.md).
@@ -33,6 +36,7 @@ public struct AppConfig: Codable, Sendable, Equatable {
         home = c.lenient(Home.self, .home) ?? d.home
         features = c.lenient(Features.self, .features) ?? d.features
         announcement = c.lenient(Announcement.self, .announcement) ?? d.announcement
+        auth = c.lenient(AuthProviders.self, .auth) ?? d.auth
     }
 
     // MARK: Sections
@@ -119,7 +123,7 @@ public struct AppConfig: Codable, Sendable, Equatable {
         public var homeGreeting: Bool
 
         public init(welcomeTitle: String = "Discover your music,\npersonalize your experience",
-                    welcomeSubtitle: String = "Use your email or Apple ID to continue with STREAMERO.", homeGreeting: Bool = true) {
+                    welcomeSubtitle: String = "Use your email or Google account to continue with STREAMERO.", homeGreeting: Bool = true) {
             self.welcomeTitle = welcomeTitle; self.welcomeSubtitle = welcomeSubtitle; self.homeGreeting = homeGreeting
         }
 
@@ -160,12 +164,12 @@ public struct AppConfig: Codable, Sendable, Equatable {
         public var equalizer: Bool
         public var radio: Bool
         public var signup: Bool
-        public var appleSignIn: Bool
+        public var googleSignIn: Bool
 
         public init(videos: Bool = true, youtube: Bool = true, lyrics: Bool = true, downloads: Bool = true,
-                    equalizer: Bool = true, radio: Bool = true, signup: Bool = true, appleSignIn: Bool = true) {
+                    equalizer: Bool = true, radio: Bool = true, signup: Bool = true, googleSignIn: Bool = true) {
             self.videos = videos; self.youtube = youtube; self.lyrics = lyrics; self.downloads = downloads
-            self.equalizer = equalizer; self.radio = radio; self.signup = signup; self.appleSignIn = appleSignIn
+            self.equalizer = equalizer; self.radio = radio; self.signup = signup; self.googleSignIn = googleSignIn
         }
 
         public init(from decoder: Decoder) throws {
@@ -178,7 +182,23 @@ public struct AppConfig: Codable, Sendable, Equatable {
             equalizer = c.lenient(Bool.self, .equalizer) ?? d.equalizer
             radio = c.lenient(Bool.self, .radio) ?? d.radio
             signup = c.lenient(Bool.self, .signup) ?? d.signup
-            appleSignIn = c.lenient(Bool.self, .appleSignIn) ?? d.appleSignIn
+            googleSignIn = c.lenient(Bool.self, .googleSignIn) ?? d.googleSignIn
+        }
+    }
+
+    /// OAuth client IDs for third-party sign-in. `nil` (or empty) means the provider is not configured.
+    public struct AuthProviders: Codable, Sendable, Equatable {
+        public var googleIosClientId: String?
+        public var googleWebClientId: String?
+
+        public init(googleIosClientId: String? = nil, googleWebClientId: String? = nil) {
+            self.googleIosClientId = googleIosClientId; self.googleWebClientId = googleWebClientId
+        }
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            googleIosClientId = c.lenient(String.self, .googleIosClientId)
+            googleWebClientId = c.lenient(String.self, .googleWebClientId)
         }
     }
 
@@ -219,6 +239,13 @@ public extension AppConfig {
             return chip != "Videos" || features.videos
         }
         return chips.isEmpty ? ["All"] : chips
+    }
+
+    /// The iOS Google OAuth client ID when Google sign-in is switched on and configured, otherwise `nil`.
+    var googleSignInClientId: String? {
+        guard features.googleSignIn,
+              let id = auth.googleIosClientId?.trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty else { return nil }
+        return id
     }
 
     /// `true` when the server reports a config version different from the one this client has (or caches none).
