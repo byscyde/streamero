@@ -16,18 +16,39 @@ if [ $PURGE -eq 1 ]; then
   [ "$answer" = "OBRISI" ] || { echo "Prekinuto."; exit 1; }
 fi
 
-FILES=(-f docker-compose.yml)
-for f in docker-compose.localhost.yml docker-compose.https.yml docker-compose.import.yml; do [ -f "$f" ] && FILES+=(-f "$f"); done
+# Everything is found by the Compose project label, so this works without .env and whatever
+# overlay files (localhost, https/Caddy, import) were used when the stack was started.
+LABEL=label=com.docker.compose.project=streamero
+ids() { "$@" 2>/dev/null | sort -u | tr '\n' ' '; }
 
-# Compose needs the variables from .env to parse the files; dummy values are enough for "down".
-export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-x}" JWT_ACCESS_SECRET="${JWT_ACCESS_SECRET:-x}" \
-  MEDIA_SIGNING_SECRET="${MEDIA_SIGNING_SECRET:-x}" S3_SECRET_KEY="${S3_SECRET_KEY:-x}"
-DOWN=(down --remove-orphans --rmi local)
-[ $PURGE -eq 1 ] && DOWN+=(--volumes)
-docker compose -p streamero "${FILES[@]}" "${DOWN[@]}" || true
+CONTAINERS=$(ids docker ps -aq --filter "$LABEL")
+if [ -n "${CONTAINERS// /}" ]; then
+  echo "Zaustavljam i uklanjam kontejnere…"
+  # shellcheck disable=SC2086
+  docker rm -f $CONTAINERS >/dev/null
+fi
+
+IMAGES=$(ids docker image ls -q --filter "$LABEL")
+IMAGES+=" $(ids docker image ls -q --filter 'reference=streamero-*')"
+if [ -n "${IMAGES// /}" ]; then
+  echo "Uklanjam STREAMERO slike…"
+  # shellcheck disable=SC2086
+  docker image rm -f $IMAGES >/dev/null 2>&1 || true
+fi
+
+for n in $(ids docker network ls -q --filter "$LABEL"); do docker network rm "$n" >/dev/null 2>&1 || true; done
 
 if [ $PURGE -eq 1 ]; then
-  for v in $(docker volume ls -q --filter label=com.docker.compose.project=streamero); do docker volume rm "$v" || true; done
+  echo "Brišem podatke…"
+  for v in $(ids docker volume ls -q --filter "$LABEL") streamero_pgdata streamero_redisdata streamero_s3data streamero_work; do
+    docker volume inspect "$v" >/dev/null 2>&1 && docker volume rm "$v" >/dev/null
+  done
+  LEFT=$(ids docker volume ls -q --filter "$LABEL")
+  if [ -n "${LEFT// /}" ]; then
+    echo "Greška: ovi volumeni nisu obrisani: $LEFT" >&2
+    echo "Provjeri koristi li ih još neki kontejner: docker ps -a --filter volume=<ime>" >&2
+    exit 1
+  fi
   rm -f "$ROOT/.env" "$ROOT/streamero-admin-credentials.txt"
 fi
 
