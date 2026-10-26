@@ -87,7 +87,8 @@ services:
     read_only: true
     tmpfs: [/tmp]
     volumes: [work:/data/work]
-    networks: [internal]
+    # egress: outbound HTTPS/SMTP only (mail, MusicBrainz, YouTube Data API, Apple keys); no published ports.
+    networks: [internal, egress]
     restart: unless-stopped
 
   worker:
@@ -127,7 +128,7 @@ services:
 networks:
   internal:
     internal: true   # no internet access, not reachable from outside
-  egress: {}         # worker URL imports and the public nginx port
+  egress: {}         # outbound access for api/worker (mail, metadata, URL imports) and the public nginx port
 
 volumes:
   pgdata:
