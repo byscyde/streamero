@@ -52,6 +52,15 @@ if [ -f .env ]; then
   # shellcheck disable=SC1091
   set -a; . ./.env; set +a
 else
+  # A new .env means new database/storage passwords. Data volumes from an earlier install keep the old
+  # ones (PostgreSQL stores its password only on first start), so the API would fail with
+  # "password authentication failed". Stop here instead of starting a stack that cannot work.
+  if docker volume inspect streamero_pgdata >/dev/null 2>&1; then
+    die "Pronađeni su podaci starije instalacije (Docker volumen streamero_pgdata), ali .env ne postoji.
+   Lozinke u novom .env ne bi odgovarale postojećoj bazi.
+   - Ako imaš stari .env: vrati ga u $ROOT/.env i ponovno pokreni skriptu.
+   - Za potpuno brisanje i instalaciju od nule: sudo ./scripts/uninstall-server.sh --purge, pa ponovno ova skripta."
+  fi
   DOMAIN="${STREAMERO_DOMAIN:-}"
   MODE="${STREAMERO_MODE:-}"
   PROXY="${STREAMERO_PROXY:-}"

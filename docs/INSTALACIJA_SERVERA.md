@@ -208,6 +208,18 @@ pa za nju server mora biti dostupan na toj domeni.
 
 **Server bez nginxa:** opcija 2 — STREAMERO sam pokrene Caddy koji izda HTTPS certifikat (portovi 80/443 moraju biti slobodni).
 
+## Brisanje i instalacija od nule
+
+```bash
+cd /opt/streamero
+sudo ./scripts/uninstall-server.sh            # makne kontejnere, slike i nginx vhost — podaci OSTAJU
+sudo ./scripts/uninstall-server.sh --purge    # briše i SVE podatke (baza, glazba, videi, korisnici, .env)
+```
+
+Nakon `--purge`: `sudo ./scripts/install-server.sh` instalira sve iznova (nove lozinke, novi admin).
+Greška `password authentication failed for user "streamero"` znači da je ostala baza od ranije instalacije,
+a `.env` je novi — vrati stari `.env` ili napravi `--purge`.
+
 ## 10. Email (preporučeno)
 
 Za potvrdu emaila, reset lozinke i pozivnice novim korisnicima upiši SMTP sandučića **no-reply@scyde.dev**
