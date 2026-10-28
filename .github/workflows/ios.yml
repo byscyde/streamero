@@ -56,12 +56,13 @@ jobs:
           brew install xcodegen
       - name: Test
         working-directory: ios
+        # Ad-hoc signed ("-") rather than unsigned: the simulator Keychain refuses unsigned apps.
         run: |
           xcodegen generate --quiet
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for k,v in d.items() if "iOS" in k for x in v if x["name"].startswith("iPhone")))')
           set -o pipefail
           xcodebuild test -project STREAMERO.xcodeproj -scheme STREAMERO -destination "id=$DEVICE" \
-            CODE_SIGNING_ALLOWED=NO -resultBundlePath build/TestResults.xcresult | tee build-test.log | grep -E "error:|Test Case.*(passed|failed)|TEST (SUCCEEDED|FAILED)|Executed"
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- -resultBundlePath build/TestResults.xcresult | tee build-test.log | grep -E "error:|Test Case.*(passed|failed)|TEST (SUCCEEDED|FAILED)|Executed"
       - name: Show test errors
         if: failure()
         working-directory: ios
