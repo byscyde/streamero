@@ -96,7 +96,7 @@ struct ServiceEditorView: View {
 
     var body: some View {
         Form {
-            Section("Connection") {
+            Section {
                 TextField("Name", text: $instance.name)
                 TextField("Address", text: $instance.url, prompt: Text(instance.kind.defaultURL))
                     .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -117,6 +117,8 @@ struct ServiceEditorView: View {
                         .accessibilityLabel(showKey ? "Hide key" : "Show key")
                 }
                 Toggle("Enabled", isOn: $instance.enabled)
+            } header: {
+                Text("Connection")
             } footer: {
                 Text("API key: \(instance.kind.apiKeyHint).")
             }

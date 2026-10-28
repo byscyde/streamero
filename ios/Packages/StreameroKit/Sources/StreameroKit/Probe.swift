@@ -9,6 +9,13 @@ public struct ProbeResult: Sendable, Identifiable {
     public var error: String?
     public var isOnline: Bool { error == nil }
     public var worstSeverity: HealthSeverity { error != nil ? .error : (issues.map(\.severity).max() ?? .ok) }
+
+    public init(instance: ServiceInstance, version: String? = nil, issues: [HealthIssue] = [], error: String? = nil) {
+        self.instance = instance
+        self.version = version
+        self.issues = issues
+        self.error = error
+    }
 }
 
 public enum ServiceProbe {
