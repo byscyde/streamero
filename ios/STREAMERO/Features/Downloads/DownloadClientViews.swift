@@ -160,7 +160,7 @@ struct SabnzbdHome: View {
             if let queue {
                 Section {
                     HStack {
-                        Label(queue.paused == true ? "Paused" : "\(queue.kbpersec.flatMap(Double.init).map { Format.bytes($0 * 1024) } ?? "0 B")/s", systemImage: queue.paused == true ? "pause.circle" : "arrow.down.circle")
+                        Label(Self.speedText(queue), systemImage: queue.paused == true ? "pause.circle" : "arrow.down.circle")
                             .foregroundStyle(queue.paused == true ? Theme.warning : Theme.ok)
                         Spacer()
                         Text([queue.sizeleft, queue.timeleft].compactMap { $0 }.joined(separator: " · ")).foregroundStyle(Theme.textSecondary)
@@ -247,6 +247,12 @@ struct SabnzbdHome: View {
             }
             Button("Cancel", role: .cancel) {}
         }
+    }
+
+    static func speedText(_ queue: SabQueue) -> String {
+        if queue.paused == true { return "Paused" }
+        let kilobytes = Double(queue.kbpersec ?? "") ?? 0
+        return "\(Format.bytes(kilobytes * 1024))/s"
     }
 
     private func load() async {
