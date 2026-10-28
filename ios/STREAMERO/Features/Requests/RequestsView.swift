@@ -39,6 +39,9 @@ struct RequestsList: View {
     @State private var requests: [SeerrRequest] = []
     @State private var error: String?
     @State private var loading = false
+    @State private var page: Page?
+
+    enum Page: Hashable { case issues, users, jobs }
 
     var body: some View {
         List {
@@ -74,8 +77,20 @@ struct RequestsList: View {
         .overlay { if loading && requests.isEmpty { ProgressView() } }
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                NavigationLink { IssuesView(instance: instance) } label: { Image(systemName: "exclamationmark.bubble") }.accessibilityLabel("Issues")
+                Menu {
+                    Button { page = .issues } label: { Label("Issues", systemImage: "exclamationmark.bubble") }
+                    Button { page = .users } label: { Label("Users & permissions", systemImage: "person.2") }
+                    Button { page = .jobs } label: { Label("Jobs & sync", systemImage: "clock.arrow.2.circlepath") }
+                } label: { Image(systemName: "ellipsis.circle") }
+                .accessibilityLabel("Manage requests server")
                 NavigationLink { DiscoverView(instance: instance) } label: { Image(systemName: "plus.magnifyingglass") }.accessibilityLabel("Discover and request")
+            }
+        }
+        .navigationDestination(item: $page) { page in
+            switch page {
+            case .issues: IssuesView(instance: instance)
+            case .users: SeerrUsersView(instance: instance)
+            case .jobs: SeerrJobsView(instance: instance)
             }
         }
         .refreshable { await load() }

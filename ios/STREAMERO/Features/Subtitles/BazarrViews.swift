@@ -35,6 +35,7 @@ struct BazarrWantedView: View {
     @State private var movies: [WantedMovie] = []
     @State private var totals = (episodes: 0, movies: 0)
     @State private var loading = false
+    @State private var manual: SubtitleSearch?
 
     var body: some View {
         List {
@@ -49,6 +50,12 @@ struct BazarrWantedView: View {
                                 try await app.bazarr(instance).downloadSubtitle(episode: episode, language: language)
                             }
                         }
+                        .swipeActions {
+                            Button { manual = SubtitleSearch(target: .episode(seriesId: episode.sonarrSeriesId, episodeId: episode.sonarrEpisodeId), title: "\(episode.seriesTitle ?? "") \(episode.episodeNumber ?? "")") } label: {
+                                Label("Manual search", systemImage: "person.fill.viewfinder")
+                            }
+                            .tint(Theme.accent)
+                        }
                     }
                 }
             }
@@ -61,11 +68,20 @@ struct BazarrWantedView: View {
                                 try await app.bazarr(instance).downloadSubtitle(movie: movie, language: language)
                             }
                         }
+                        .swipeActions {
+                            Button { manual = SubtitleSearch(target: .movie(movie.radarrId), title: movie.title ?? "Movie") } label: {
+                                Label("Manual search", systemImage: "person.fill.viewfinder")
+                            }
+                            .tint(Theme.accent)
+                        }
                     }
                 }
             }
         }
         .overlay { if loading && episodes.isEmpty && movies.isEmpty { ProgressView() } }
+        .sheet(item: $manual, onDismiss: { Task { await load() } }) { search in
+            NavigationStack { SubtitleSearchView(instance: instance, search: search) }
+        }
         .refreshable { await load() }
         .task { await load() }
     }
@@ -185,4 +201,87 @@ struct BazarrTasksView: View {
     }
 
     private func load() async { tasks = (try? await app.bazarr(instance).tasks()) ?? [] }
+}
+
+struct SubtitleSearch: Identifiable {
+    enum Target { case episode(seriesId: Int, episodeId: Int), movie(Int) }
+    let id = UUID()
+    var target: Target
+    var title: String
+}
+
+/// Bazarr's manual search: every subtitle the providers offer, with scores; tap one to download it.
+struct SubtitleSearchView: View {
+    var instance: ServiceInstance
+    var search: SubtitleSearch
+    @Environment(AppState.self) private var app
+    @Environment(\.dismiss) private var dismiss
+    @State private var candidates: [SubtitleCandidate] = []
+    @State private var loading = true
+    @State private var error: String?
+
+    var body: some View {
+        List {
+            if let error { ErrorStateView(message: error) { Task { await load() } } }
+            if !loading && error == nil && candidates.isEmpty { ContentUnavailableView("No subtitles found", systemImage: "captions.bubble") }
+            ForEach(candidates) { candidate in
+                Button { download(candidate) } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Pill(text: candidate.language.uppercased(), color: Theme.accent)
+                            Text(candidate.provider).font(.subheadline.weight(.semibold))
+                            Spacer()
+                            Text(candidate.score.isEmpty ? "" : "\(candidate.score)%").font(.caption.monospacedDigit()).foregroundStyle(Theme.ok)
+                        }
+                        ForEach(candidate.releaseInfo.prefix(3), id: \.self) { Text($0).font(.caption2).foregroundStyle(Theme.textSecondary).lineLimit(1) }
+                        HStack(spacing: 6) {
+                            if candidate.hearingImpaired { Pill(text: "HI") }
+                            if candidate.forced { Pill(text: "Forced") }
+                            if let uploader = candidate.uploader, !uploader.isEmpty { Text(uploader).font(.caption2).foregroundStyle(Theme.textSecondary) }
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .overlay {
+            if loading {
+                VStack(spacing: 10) {
+                    ProgressView()
+                    Text("Searching subtitle providers…").font(.caption).foregroundStyle(Theme.textSecondary)
+                }
+            }
+        }
+        .navigationTitle(search.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
+        .task { await load() }
+    }
+
+    private func load() async {
+        loading = true
+        defer { loading = false }
+        do {
+            let client = try app.bazarr(instance)
+            switch search.target {
+            case .episode(_, let episodeId): candidates = try await client.searchSubtitles(episodeId: episodeId)
+            case .movie(let id): candidates = try await client.searchSubtitles(movieId: id)
+            }
+            error = nil
+        } catch {
+            self.error = AppState.describe(error)
+        }
+    }
+
+    private func download(_ candidate: SubtitleCandidate) {
+        app.perform("Subtitle downloaded") {
+            let client = try app.bazarr(instance)
+            switch search.target {
+            case .episode(let seriesId, let episodeId): try await client.download(candidate, seriesId: seriesId, episodeId: episodeId)
+            case .movie(let id): try await client.download(candidate, movieId: id)
+            }
+            dismiss()
+        }
+    }
 }

@@ -30,6 +30,8 @@ enum Theme {
         case .lidarr: "music.note"
         case .prowlarr: "magnifyingglass.circle"
         case .bazarr: "captions.bubble"
+        case .qbittorrent: "arrow.down.to.line.compact"
+        case .sabnzbd: "tray.full"
         }
     }
 }

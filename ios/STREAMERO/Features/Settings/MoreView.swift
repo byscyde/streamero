@@ -14,6 +14,22 @@ struct MoreView: View {
                 link(.lidarr, "Music", "Lidarr library") { ArtistsListView().navigationTitle("Music") }
                 link(.prowlarr, "Indexers", "Prowlarr indexers and search") { IndexersView() }
                 link(.bazarr, "Subtitles", "Bazarr wanted, history, providers") { SubtitlesView() }
+                link(.qbittorrent, "Torrents", "qBittorrent transfers") { QBittorrentView() }
+                link(.sabnzbd, "Usenet", "SABnzbd queue and history") { SabnzbdView() }
+            }
+            let managed = app.configured.filter { [ServiceKind.sonarr, .radarr, .lidarr, .prowlarr].contains($0.kind) }
+            if !managed.isEmpty {
+                Section {
+                    ForEach(managed) { instance in
+                        NavigationLink { ArrManageView(instance: instance) } label: {
+                            Label(instance.name, systemImage: Theme.icon(instance.kind))
+                        }
+                    }
+                } header: {
+                    Text("Manage")
+                } footer: {
+                    Text("Download clients, indexers, lists, connections, profiles, root folders, tags, tasks, backups, updates and logs.")
+                }
             }
             Section {
                 NavigationLink { SystemHealthView() } label: { Label("System health", systemImage: "stethoscope") }

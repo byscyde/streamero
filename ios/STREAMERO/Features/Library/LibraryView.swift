@@ -144,6 +144,7 @@ struct MovieDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var movie: Movie?
     @State private var confirmDelete = false
+    @State private var sheet: DetailSheet?
 
     var body: some View {
         List {
@@ -162,6 +163,8 @@ struct MovieDetailView: View {
                 if let genres = movie.genres, !genres.isEmpty { Section("Genres") { Text(genres.joined(separator: ", ")) } }
                 Section {
                     Button { act("Search started") { try await $0.search(movieIds: [movieId]) } } label: { Label("Search now", systemImage: "magnifyingglass") }
+                    Button { sheet = .releases } label: { Label("Interactive search", systemImage: "person.fill.viewfinder") }
+                    Button { sheet = .edit } label: { Label("Edit profile, tags, availability", systemImage: "slider.horizontal.3") }
                     Button { act("Refreshing") { try await $0.refresh(movieIds: [movieId]) } } label: { Label("Refresh & rescan", systemImage: "arrow.clockwise") }
                     Button {
                         let monitored = !(movie.monitored ?? false)
@@ -175,6 +178,14 @@ struct MovieDetailView: View {
         }
         .navigationTitle(movie?.title ?? "Movie")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $sheet) { kind in
+            NavigationStack {
+                switch kind {
+                case .releases: ReleasesSheet(instance: instance, target: .movie(movieId), title: movie?.title ?? "Releases")
+                case .edit: ItemEditView(instance: instance, path: "movie/\(movieId)") { Task { await load() }; onChange() }
+                }
+            }
+        }
         .refreshable { await load() }
         .task { await load() }
         .confirmationDialog("Delete \(movie?.title ?? "movie")?", isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -301,6 +312,7 @@ struct SeriesDetailView: View {
     @State private var series: Series?
     @State private var episodes: [Episode] = []
     @State private var confirmDelete = false
+    @State private var editing = false
 
     var body: some View {
         List {
@@ -331,6 +343,7 @@ struct SeriesDetailView: View {
                 }
                 Section {
                     Button { act("Search started") { try await $0.searchSeries(seriesId) } } label: { Label("Search all missing", systemImage: "magnifyingglass") }
+                    Button { editing = true } label: { Label("Edit profile, type, seasons, tags", systemImage: "slider.horizontal.3") }
                     Button { act("Refreshing") { try await $0.refreshSeries(seriesId) } } label: { Label("Refresh & rescan", systemImage: "arrow.clockwise") }
                     Button {
                         let monitored = !(series.monitored ?? false)
@@ -344,6 +357,9 @@ struct SeriesDetailView: View {
         }
         .navigationTitle(series?.title ?? "Series")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $editing) {
+            NavigationStack { ItemEditView(instance: instance, path: "series/\(seriesId)") { Task { await load() }; onChange() } }
+        }
         .refreshable { await load() }
         .task { await load() }
         .confirmationDialog("Delete \(series?.title ?? "series")?", isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -381,12 +397,16 @@ struct SeasonView: View {
     var season: Int
     @State var episodes: [Episode]
     @Environment(AppState.self) private var app
+    @State private var search: ReleaseQuery?
 
     var body: some View {
         List {
             Section {
                 Button { app.perform("Season search started") { try await app.sonarr(instance).searchSeason(seriesId: seriesId, season: season) } } label: {
                     Label("Search whole season", systemImage: "magnifyingglass")
+                }
+                Button { search = ReleaseQuery(target: .season(seriesId: seriesId, season: season), title: season == 0 ? "Specials" : "Season \(season)") } label: {
+                    Label("Interactive search (season packs)", systemImage: "person.fill.viewfinder")
                 }
             }
             ForEach(episodes.sorted { $0.episodeNumber > $1.episodeNumber }) { episode in
@@ -405,6 +425,8 @@ struct SeasonView: View {
                 .swipeActions {
                     Button { app.perform("Searching \(episode.code)") { try await app.sonarr(instance).searchEpisodes([episode.id]) } } label: { Label("Search", systemImage: "magnifyingglass") }
                         .tint(Theme.accent)
+                    Button { search = ReleaseQuery(target: .episode(episode.id), title: episode.code) } label: { Label("Releases", systemImage: "person.fill.viewfinder") }
+                        .tint(.indigo)
                     Button {
                         let monitored = !(episode.monitored ?? false)
                         app.perform(monitored ? "Monitored" : "Unmonitored") {
@@ -416,6 +438,9 @@ struct SeasonView: View {
             }
         }
         .navigationTitle(season == 0 ? "Specials" : "Season \(season)")
+        .sheet(item: $search) { query in
+            NavigationStack { ReleasesSheet(instance: instance, target: query.target, title: query.title) }
+        }
     }
 }
 
@@ -474,6 +499,8 @@ struct ArtistDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var albums: [Album] = []
     @State private var confirmDelete = false
+    @State private var search: ReleaseQuery?
+    @State private var editing = false
 
     var body: some View {
         List {
@@ -486,11 +513,14 @@ struct ArtistDetailView: View {
                         .swipeActions {
                             Button { app.perform("Searching \(album.title)") { try await app.lidarr(instance).searchAlbums([album.id]) } } label: { Label("Search", systemImage: "magnifyingglass") }
                                 .tint(Theme.accent)
+                            Button { search = ReleaseQuery(target: .album(album.id), title: album.title) } label: { Label("Releases", systemImage: "person.fill.viewfinder") }
+                                .tint(.indigo)
                         }
                 }
             }
             Section {
                 Button { app.perform("Search started") { try await app.lidarr(instance).searchArtist(artist.id) } } label: { Label("Search all missing albums", systemImage: "magnifyingglass") }
+                Button { editing = true } label: { Label("Edit profiles and tags", systemImage: "slider.horizontal.3") }
                 Button {
                     let monitored = !(artist.monitored ?? false)
                     app.perform(monitored ? "Monitored" : "Unmonitored") { try await app.lidarr(instance).setMonitored(artistId: artist.id, monitored); onChange() }
@@ -500,6 +530,12 @@ struct ArtistDetailView: View {
         }
         .navigationTitle(artist.artistName)
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $search) { query in
+            NavigationStack { ReleasesSheet(instance: instance, target: query.target, title: query.title) }
+        }
+        .sheet(isPresented: $editing) {
+            NavigationStack { ItemEditView(instance: instance, path: "artist/\(artist.id)", onSave: onChange) }
+        }
         .task { albums = (try? await app.lidarr(instance).albums(artistId: artist.id)) ?? [] }
         .confirmationDialog("Delete \(artist.artistName)?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Delete from Lidarr", role: .destructive) { delete(files: false) }

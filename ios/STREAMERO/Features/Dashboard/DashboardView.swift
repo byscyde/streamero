@@ -318,6 +318,8 @@ struct DashboardView: View {
         case .lidarr: ArtistsListView()
         case .prowlarr: IndexersView()
         case .bazarr: SubtitlesView()
+        case .qbittorrent: QBittorrentView()
+        case .sabnzbd: SabnzbdView()
         }
     }
 }

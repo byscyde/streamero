@@ -9,7 +9,7 @@ struct WelcomeView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     BrandMark(size: 64)
                     Text("Welcome to Streamero").font(.system(.title2, design: .monospaced).weight(.bold))
-                    Text("One app to run your media server: Jellyfin, requests, Sonarr, Radarr, Lidarr, Prowlarr and Bazarr. Add the API key of each service you use — the streamero.net addresses are already filled in.")
+                    Text("One app to run your media server: Jellyfin, requests, Sonarr, Radarr, Lidarr, Prowlarr, Bazarr, qBittorrent and SABnzbd. Add the API key of each service you use — the streamero.net addresses are already filled in.")
                         .foregroundStyle(Theme.textSecondary)
                 }
                 .padding(.vertical, 8)
@@ -101,9 +101,14 @@ struct ServiceEditorView: View {
                 TextField("Address", text: $instance.url, prompt: Text(instance.kind.defaultURL))
                     .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
                     .accessibilityIdentifier("serviceURLField")
+                if instance.kind == .qbittorrent {
+                    TextField("Username", text: Binding(get: { instance.username ?? "" }, set: { instance.username = $0 }))
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                }
                 HStack {
                     Group {
-                        if showKey { TextField("API key", text: $instance.apiKey) } else { SecureField("API key", text: $instance.apiKey) }
+                        let label = instance.kind == .qbittorrent ? "Password" : "API key"
+                        if showKey { TextField(label, text: $instance.apiKey) } else { SecureField(label, text: $instance.apiKey) }
                     }
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .accessibilityIdentifier("apiKeyField")

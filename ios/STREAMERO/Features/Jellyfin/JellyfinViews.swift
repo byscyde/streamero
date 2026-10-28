@@ -50,6 +50,10 @@ struct JellyfinHome: View {
                 NavigationLink { JellyfinUsersView(instance: instance) } label: { Label("Users", systemImage: "person.2") }
                 NavigationLink { JellyfinTasksView(instance: instance) } label: { Label("Scheduled tasks", systemImage: "clock.arrow.2.circlepath") }
                 NavigationLink { JellyfinActivityView(instance: instance) } label: { Label("Activity log", systemImage: "list.bullet.rectangle") }
+                NavigationLink { JellyfinPluginsView(instance: instance) } label: { Label("Plugins", systemImage: "puzzlepiece.extension") }
+                NavigationLink { JellyfinDevicesView(instance: instance) } label: { Label("Devices", systemImage: "iphone.and.arrow.forward") }
+                NavigationLink { JellyfinApiKeysView(instance: instance) } label: { Label("API keys", systemImage: "key") }
+                NavigationLink { JellyfinLogsView(instance: instance) } label: { Label("Server logs", systemImage: "doc.plaintext") }
             }
             Section {
                 Button { confirm = .restart } label: { Label("Restart server", systemImage: "arrow.clockwise") }
@@ -191,6 +195,10 @@ struct JellyfinLibrariesView: View {
     var instance: ServiceInstance
     @Environment(AppState.self) private var app
     @State private var libraries: [VirtualFolder] = []
+    @State private var adding = false
+    @State private var removing: VirtualFolder?
+    @State private var pathTarget: VirtualFolder?
+    @State private var newPath = ""
 
     var body: some View {
         List {
@@ -209,6 +217,15 @@ struct JellyfinLibrariesView: View {
                         }
                         ForEach(library.locations ?? [], id: \.self) { Text($0).font(.caption.monospaced()).foregroundStyle(Theme.textSecondary) }
                     }
+                    .contextMenu {
+                        Button { pathTarget = library } label: { Label("Add folder", systemImage: "folder.badge.plus") }
+                        ForEach(library.locations ?? [], id: \.self) { location in
+                            Button(role: .destructive) { app.perform("Folder removed") { try await app.jellyfin(instance).removePath(location, fromLibrary: library.name); await load() } } label: {
+                                Label("Remove \(location)", systemImage: "folder.badge.minus")
+                            }
+                        }
+                        Button(role: .destructive) { removing = library } label: { Label("Remove library", systemImage: "trash") }
+                    }
                     .swipeActions {
                         if let id = library.itemId {
                             Button { app.perform("Refreshing \(library.name)") { try await app.jellyfin(instance).refresh(itemId: id) } } label: { Label("Scan", systemImage: "arrow.clockwise") }
@@ -220,6 +237,28 @@ struct JellyfinLibrariesView: View {
             }
         }
         .navigationTitle("Libraries")
+        .toolbar { Button { adding = true } label: { Image(systemName: "plus") }.accessibilityLabel("New library") }
+        .sheet(isPresented: $adding) {
+            NavigationStack { AddLibraryView(instance: instance) { Task { await load() } } }
+        }
+        .alert("Add folder to \(pathTarget?.name ?? "")", isPresented: Binding(get: { pathTarget != nil }, set: { if !$0 { pathTarget = nil } })) {
+            TextField("/media/…", text: $newPath).textInputAutocapitalization(.never).autocorrectionDisabled()
+            Button("Add") {
+                guard let library = pathTarget else { return }
+                let path = newPath
+                newPath = ""
+                app.perform("Folder added") { try await app.jellyfin(instance).addPath(path, toLibrary: library.name); await load() }
+            }
+            Button("Cancel", role: .cancel) { newPath = "" }
+        }
+        .confirmationDialog("Remove library \(removing?.name ?? "")?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }), titleVisibility: .visible) {
+            Button("Remove library", role: .destructive) {
+                guard let library = removing else { return }
+                app.perform("Library removed") { try await app.jellyfin(instance).removeLibrary(name: library.name); await load() }
+            }
+        } message: {
+            Text("Jellyfin forgets the library and its watch data. Files on disk are not deleted.")
+        }
         .refreshable { await load() }
         .task { await load() }
     }
@@ -260,6 +299,7 @@ struct JellyfinUsersView: View {
     @State private var passwordTarget: JellyfinUser?
     @State private var passwordText = ""
     @State private var deleteTarget: JellyfinUser?
+    @State private var policyTarget: JellyfinUser?
 
     var body: some View {
         List(users) { user in
@@ -281,6 +321,7 @@ struct JellyfinUsersView: View {
                     Button { update(user) { try await $0.setAdministrator(userId: user.id, !user.isAdmin) } } label: {
                         Label(user.isAdmin ? "Remove admin" : "Make admin", systemImage: "shield")
                     }
+                    Button { policyTarget = user } label: { Label("Permissions & libraries", systemImage: "checklist") }
                     Button { passwordTarget = user } label: { Label("Set password", systemImage: "key") }
                     Button(role: .destructive) { deleteTarget = user } label: { Label("Delete user", systemImage: "trash") }
                 } label: {
@@ -290,6 +331,9 @@ struct JellyfinUsersView: View {
             }
         }
         .navigationTitle("Users")
+        .sheet(item: $policyTarget, onDismiss: { Task { await load() } }) { user in
+            NavigationStack { JellyfinPolicyView(instance: instance, user: user) }
+        }
         .toolbar { Button { showCreate = true } label: { Image(systemName: "person.badge.plus") }.accessibilityLabel("New user") }
         .refreshable { await load() }
         .task { await load() }

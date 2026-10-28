@@ -82,6 +82,9 @@ final class AppState {
     func bazarr(_ i: ServiceInstance) throws -> BazarrClient { BazarrClient(client: try client(i)) }
     func seerr(_ i: ServiceInstance) throws -> SeerrClient { SeerrClient(client: try client(i)) }
     func jellyfin(_ i: ServiceInstance) throws -> JellyfinClient { JellyfinClient(client: try client(i)) }
+    func arr(_ i: ServiceInstance) throws -> GenericArr { GenericArr(client: try client(i)) }
+    func qbittorrent(_ i: ServiceInstance) throws -> QBittorrentClient { QBittorrentClient(client: try client(i), username: i.username ?? "", password: i.apiKey) }
+    func sabnzbd(_ i: ServiceInstance) throws -> SabnzbdClient { SabnzbdClient(client: try client(i)) }
 
     // MARK: Feedback
 

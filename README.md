@@ -9,13 +9,21 @@ directly to each service's own API — there is no Streamero server in between.
 
 | Service | Default address | What you can do in the app |
 | --- | --- | --- |
-| Jellyfin | `https://streamero.net` | See who is watching (direct play / transcode, bitrate), pause/stop/message a stream, scan libraries, recently added, manage users (create, delete, enable/disable, admin, password), run scheduled tasks, activity log, restart / shut down |
-| Jellyseerr / Overseerr | `https://req.streamero.net` | Pending/approved/available requests, approve, decline, delete, retry, discover & request movies/series, issues (resolve) — several Seerr instances supported |
-| Sonarr | `https://son.streamero.net` | Series library, seasons & episodes, search series/season/episode, monitor, refresh, delete, add new series |
-| Radarr | `https://rad.streamero.net` | Movie library, file & quality, search, monitor, refresh, delete, add new movies |
-| Lidarr | `https://lid.streamero.net` | Artists & albums, album/artist search, monitor, delete, add new artists |
-| Prowlarr | `https://prow.streamero.net` | Indexers with health and stats, enable/disable, test, sync to apps, manual release search and grab |
-| Bazarr | `https://baz.streamero.net` | Missing subtitles per episode/movie with one-tap download per language, history, provider status/reset, tasks |
+| Jellyfin | `https://streamero.net` | Active streams (direct play / transcode, bitrate; pause, stop, message), libraries (scan, replace metadata, add/remove library and folders), recently added, users (create, delete, enable/disable, admin, password, **permissions, library access, stream and bitrate limits**), plugins (enable/disable, uninstall, install from catalog), devices, API keys, scheduled tasks, activity log, server log files, restart / shut down |
+| Jellyseerr / Overseerr | `https://req.streamero.net` | Requests (approve, decline, delete, retry), discover & request, issues, **users and permissions**, import Jellyfin users, **jobs** (run / cancel) — several instances supported |
+| Sonarr | `https://son.streamero.net` | Series, seasons and episodes, search, **interactive search** (season packs / single episodes, with rejection reasons), edit (quality profile, series type, season folders, monitored seasons, tags), add, delete |
+| Radarr | `https://rad.streamero.net` | Movies, search, **interactive search**, edit (quality profile, minimum availability, tags), add, delete |
+| Lidarr | `https://lid.streamero.net` | Artists and albums, search, interactive album search, edit (quality and metadata profile, tags), add, delete |
+| Prowlarr | `https://prow.streamero.net` | Indexers (health, stats, enable/disable, test), apps, release search and grab, sync to apps |
+| Bazarr | `https://baz.streamero.net` | Missing subtitles with one-tap download per language, **manual search** (all provider results with scores), history, providers, tasks |
+| qBittorrent | `https://qbit.streamero.net` | Speeds, alternative speed limits, torrents by state, pause / resume / delete (with or without files) / recheck / reannounce, add magnet or URL |
+| SABnzbd | `https://sab.streamero.net` | Queue and history, pause / resume (all or one), speed limit, delete, retry failed, add NZB URL |
+
+**Settings and System for every *arr app (Manage)** — the same pages as their web UIs: download clients, indexers,
+import lists, connections (notifications), metadata, Prowlarr apps and indexer proxies (all edited through the form
+each app describes for itself: add from any implementation, edit every field, test, test all, enable/disable,
+delete), quality profiles (upgrades), root folders, tags, status & health, scheduled tasks (run now), backups (create,
+delete), updates (changelog, install), logs, blocklist, RSS sync, restart and shut down.
 
 Across services: a **dashboard** (status and version of every service, health warnings, active streams, pending
 requests, downloads, disk space, what's airing in the next 7 days, auto-refresh every 30 s), a combined **download

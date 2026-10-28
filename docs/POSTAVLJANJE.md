@@ -1,7 +1,7 @@
 # Streamero — postavljanje (hrvatski)
 
 Streamero je administratorska aplikacija za tvoj streamero.net: Jellyfin, Jellyseerr/Overseerr, Sonarr, Radarr,
-Lidarr, Prowlarr i Bazarr. Aplikacija se spaja **izravno** na svaki servis preko njegovog API-ja — na serveru ne
+Lidarr, Prowlarr, Bazarr, qBittorrent i SABnzbd. Aplikacija se spaja **izravno** na svaki servis preko njegovog API-ja — na serveru ne
 treba instalirati ništa novo.
 
 ## 1. Instalacija na iPhone
@@ -21,6 +21,11 @@ treba instalirati ništa novo.
 | Lidarr | `https://lid.streamero.net` |
 | Prowlarr | `https://prow.streamero.net` |
 | Bazarr | `https://baz.streamero.net` |
+| qBittorrent | `https://qbit.streamero.net` |
+| SABnzbd | `https://sab.streamero.net` |
+
+Adrese za Lidarr, Prowlarr, Bazarr, qBittorrent i SABnzbd su pretpostavljene — ako su kod tebe drugačije, promijeni ih.
+Servise koje ne koristiš isključi (Enabled) ili obriši.
 
 Ako je neki servis na drugoj poddomeni, samo promijeni adresu u aplikaciji (Settings → Services → servis → Address).
 Drugi Seerr (npr. Overseerr) ili drugi Radarr (npr. 4K): Settings → Services → **Add another …**.
@@ -33,6 +38,8 @@ Ako servis koristi URL base (npr. `https://streamero.net/sonarr`), upiši adresu
 | Sonarr, Radarr, Lidarr, Prowlarr | Web sučelje → **Settings → General → Security → API Key** |
 | Bazarr | **Settings → General → Security → API Key** |
 | Jellyseerr / Overseerr | **Settings → General → API Key** |
+| SABnzbd | **Config → General → Security → API Key** |
+| qBittorrent | nema API ključa: upiši **Username** i **Password** Web UI-ja (Tools → Options → Web UI) |
 | Jellyfin | **Dashboard → API Keys → +** (naziv npr. "Streamero"), *ili* u aplikaciji upiši korisničko ime i lozinku administratora i stisni **Sign in** |
 
 U aplikaciji: dodirni servis → zalijepi ključ u **API key** → **Test connection** (mora pisati *Connected* i
@@ -50,10 +57,22 @@ Ključevi se spremaju samo na iPhoneu (Keychain) i šalju samo tvojim serverima.
   datoteka, brisanje, dodavanje novog naslova (+).
 - **Activity** — zajednički red preuzimanja (uklanjanje i blocklist), kalendar, što nedostaje (Wanted) s
   pretragom, povijest.
-- **More → Jellyfin** — aktivni streamovi (pauza, stop, poruka gledatelju), skeniranje knjižnica, korisnici
-  (novi, brisanje, isključi/uključi, admin, nova lozinka), zakazani zadaci, dnevnik, restart/gašenje servera.
+- **Library → detalji** — *Interactive search* (svi releasovi s indexera i razlozi odbijanja; dodir → preuzmi),
+  *Edit* (quality profile, minimum availability, tip serije, sezone, tagovi). Na epizodi/albumu povuci ulijevo → *Releases*.
+- **More → Jellyfin** — streamovi (pauza, stop, poruka), knjižnice (skeniranje, nova knjižnica, dodaj/makni mapu —
+  dugi pritisak), korisnici (novi, brisanje, admin, lozinka, **ovlasti, pristup knjižnicama, limit streamova i
+  bitratea**), pluginovi (uključi/isključi, deinstaliraj, instaliraj iz kataloga), uređaji, API ključevi, zadaci,
+  dnevnik, log datoteke servera, restart/gašenje.
+- **Requests → ⋯** — Issues, korisnici i ovlasti (uvoz korisnika iz Jellyfina), poslovi (Jobs: pokreni/prekini).
 - **More → Indexers** — Prowlarr indexeri (status, uključi/isključi, test), ručna pretraga i slanje u download klijent.
-- **More → Subtitles** — Bazarr titlovi koji nedostaju (preuzimanje po jeziku jednim dodirom), povijest, provideri, zadaci.
+- **More → Subtitles** — Bazarr titlovi koji nedostaju (preuzimanje po jeziku jednim dodirom; povuci ulijevo →
+  *Manual search* sa svim rezultatima i ocjenama), povijest, provideri, zadaci.
+- **More → Torrents / Usenet** — qBittorrent i SABnzbd: brzine, pauza/nastavak, brisanje, recheck, limit brzine,
+  dodavanje magnet linka ili NZB-a.
+- **More → Manage → (Sonarr/Radarr/Lidarr/Prowlarr)** — sve iz *Settings* i *System* web sučelja: download
+  klijenti, indexeri, import liste, konekcije (obavijesti), metadata, Prowlarr aplikacije; svaki se dodaje i uređuje
+  kroz isti obrazac kao u webu (sva polja, Test, Test all, uključi/isključi, brisanje). Plus quality profili, root
+  mape, tagovi, status i health, zadaci, backupi, ažuriranja, logovi, blocklist, RSS sync, restart i gašenje.
 - **Settings** — servisi, zaključavanje s Face ID-om, verzija.
 
 ## 5. Ako nešto ne radi
