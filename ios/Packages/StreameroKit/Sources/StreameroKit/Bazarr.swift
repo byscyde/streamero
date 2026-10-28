@@ -204,3 +204,57 @@ public struct BazarrClient: Sendable {
         ])
     }
 }
+
+/// A subtitle candidate from Bazarr's manual (interactive) search.
+public struct SubtitleCandidate: Sendable, Identifiable, Hashable {
+    public var raw: JSONValue
+    public var id: String { "\(provider)|\(subtitle)" }
+    public var provider: String { raw["provider"]?.stringValue ?? "?" }
+    public var subtitle: String { raw["subtitle"]?.stringValue ?? "" }
+    public var language: String { raw["language"]?.stringValue ?? "" }
+    public var score: String { raw["score"]?.stringValue ?? raw["score"]?.intValue.map(String.init) ?? "" }
+    public var releaseInfo: [String] { (raw["release_info"]?.arrayValue ?? []).compactMap(\.stringValue) }
+    public var uploader: String? { raw["uploader"]?.stringValue }
+    public var hearingImpaired: Bool { Self.flag(raw["hearing_impaired"]) }
+    public var forced: Bool { Self.flag(raw["forced"]) }
+    public var originalFormat: Bool { Self.flag(raw["original_format"]) }
+
+    static func flag(_ value: JSONValue?) -> Bool {
+        if let b = value?.boolValue { return b }
+        return value?.stringValue?.lowercased() == "true"
+    }
+}
+
+extension BazarrClient {
+    public func searchSubtitles(episodeId: Int) async throws -> [SubtitleCandidate] {
+        var c = client
+        c.timeout = 120
+        let data: BazarrData<[JSONValue]> = try await c.get("providers/episodes", query: [URLQueryItem(name: "episodeid", value: String(episodeId))])
+        return data.data.map(SubtitleCandidate.init)
+    }
+
+    public func searchSubtitles(movieId: Int) async throws -> [SubtitleCandidate] {
+        var c = client
+        c.timeout = 120
+        let data: BazarrData<[JSONValue]> = try await c.get("providers/movies", query: [URLQueryItem(name: "radarrid", value: String(movieId))])
+        return data.data.map(SubtitleCandidate.init)
+    }
+
+    public func download(_ candidate: SubtitleCandidate, seriesId: Int, episodeId: Int) async throws {
+        try await client.perform(.post, "providers/episodes", query: [
+            URLQueryItem(name: "seriesid", value: String(seriesId)), URLQueryItem(name: "episodeid", value: String(episodeId)),
+        ] + Self.candidateQuery(candidate))
+    }
+
+    public func download(_ candidate: SubtitleCandidate, movieId: Int) async throws {
+        try await client.perform(.post, "providers/movies", query: [URLQueryItem(name: "radarrid", value: String(movieId))] + Self.candidateQuery(candidate))
+    }
+
+    static func candidateQuery(_ c: SubtitleCandidate) -> [URLQueryItem] {
+        [
+            URLQueryItem(name: "provider", value: c.provider), URLQueryItem(name: "subtitle", value: c.subtitle),
+            URLQueryItem(name: "hi", value: c.hearingImpaired ? "True" : "False"), URLQueryItem(name: "forced", value: c.forced ? "True" : "False"),
+            URLQueryItem(name: "original_format", value: c.originalFormat ? "True" : "False"),
+        ]
+    }
+}

@@ -50,6 +50,8 @@ public struct ServiceClient: Sendable {
     public var headers: [String: String]
     public let transport: HTTPTransport
     public var timeout: TimeInterval = 20
+    /// Appended to every request (SABnzbd takes its API key as a query parameter).
+    public var defaultQuery: [URLQueryItem] = []
 
     public init(baseURL: URL, prefix: String = "", headers: [String: String] = [:], transport: HTTPTransport = URLSessionTransport()) {
         self.baseURL = baseURL
@@ -66,7 +68,8 @@ public struct ServiceClient: Sendable {
         guard var components = URLComponents(string: base + "/" + parts.joined(separator: "/")) else {
             throw ServiceError.invalidURL(path)
         }
-        if !query.isEmpty { components.queryItems = query }
+        let items = query + defaultQuery
+        if !items.isEmpty { components.queryItems = items }
         // Some servers (Overseerr/Jellyseerr) reject "+" in queries; URLComponents leaves it literal.
         components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
         guard let url = components.url else { throw ServiceError.invalidURL(path) }

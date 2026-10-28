@@ -32,6 +32,10 @@ public enum ServiceProbe {
                 result.issues = health.compactMap { item in
                     item.issue.map { HealthIssue(service: instance.name, severity: .warning, message: [item.object, $0].compactMap { $0 }.joined(separator: ": ")) }
                 }
+            case .qbittorrent:
+                result.version = try await QBittorrentClient(client: client, username: instance.username ?? "", password: instance.apiKey).version()
+            case .sabnzbd:
+                result.version = try await SabnzbdClient(client: client).version()
             case .sonarr, .radarr, .lidarr, .prowlarr:
                 let arr = GenericArr(client: client)
                 result.version = try await arr.systemStatus().version

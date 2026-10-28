@@ -2,7 +2,7 @@ import Foundation
 
 /// The services Streamero manages.
 public enum ServiceKind: String, Codable, Sendable, CaseIterable, Identifiable {
-    case jellyfin, seerr, sonarr, radarr, lidarr, prowlarr, bazarr
+    case jellyfin, seerr, sonarr, radarr, lidarr, prowlarr, bazarr, qbittorrent, sabnzbd
 
     public var id: String { rawValue }
 
@@ -15,6 +15,8 @@ public enum ServiceKind: String, Codable, Sendable, CaseIterable, Identifiable {
         case .lidarr: "Lidarr"
         case .prowlarr: "Prowlarr"
         case .bazarr: "Bazarr"
+        case .qbittorrent: "qBittorrent"
+        case .sabnzbd: "SABnzbd"
         }
     }
 
@@ -27,6 +29,8 @@ public enum ServiceKind: String, Codable, Sendable, CaseIterable, Identifiable {
         case .lidarr: "Music"
         case .prowlarr: "Indexers"
         case .bazarr: "Subtitles"
+        case .qbittorrent: "Torrent client"
+        case .sabnzbd: "Usenet client"
         }
     }
 
@@ -40,6 +44,8 @@ public enum ServiceKind: String, Codable, Sendable, CaseIterable, Identifiable {
         case .lidarr: "https://lid.streamero.net"
         case .prowlarr: "https://prow.streamero.net"
         case .bazarr: "https://baz.streamero.net"
+        case .qbittorrent: "https://qbit.streamero.net"
+        case .sabnzbd: "https://sab.streamero.net"
         }
     }
 
@@ -50,6 +56,8 @@ public enum ServiceKind: String, Codable, Sendable, CaseIterable, Identifiable {
         case .seerr: "Settings → General → API Key"
         case .sonarr, .radarr, .lidarr, .prowlarr: "Settings → General → Security → API Key"
         case .bazarr: "Settings → General → Security → API Key"
+        case .qbittorrent: "enter the Web UI password here and the user name below (Tools → Options → Web UI)"
+        case .sabnzbd: "Config → General → Security → API Key"
         }
     }
 
@@ -108,6 +116,13 @@ public enum ServiceClients {
             return ServiceClient(baseURL: base, prefix: "api/v1", headers: ["X-Api-Key": instance.apiKey], transport: transport)
         case .bazarr:
             return ServiceClient(baseURL: base, prefix: "api", headers: ["X-API-KEY": instance.apiKey], transport: transport)
+        case .qbittorrent:
+            // qBittorrent checks Referer/Origin against its own host (CSRF protection); auth is a session cookie.
+            return ServiceClient(baseURL: base, prefix: "api/v2", headers: ["Referer": base.absoluteString, "Origin": base.absoluteString], transport: transport)
+        case .sabnzbd:
+            var client = ServiceClient(baseURL: base, prefix: "api", transport: transport)
+            client.defaultQuery = [URLQueryItem(name: "output", value: "json"), URLQueryItem(name: "apikey", value: instance.apiKey)]
+            return client
         }
     }
 
