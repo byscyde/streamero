@@ -1,88 +1,48 @@
-# STREAMERO
+# Streamero
 
-<img src="design/logo-mark.svg" width="96" alt="STREAMERO logo">
+<img src="design/logo-mark.svg" width="96" alt="Streamero logo">
 
-Developed by **[SCYDE](https://scyde.dev)**.
+**One iPhone app to run the whole streamero.net media stack.** Developed by **[SCYDE](https://scyde.dev)**.
 
-**Your Sound. Your Screen. Your World.**
+Streamero is a native SwiftUI admin app for a self-hosted Jellyfin server and the *arr apps around it. It talks
+directly to each service's own API — there is no Streamero server in between.
 
-STREAMERO is a self-hosted, premium music and video streaming platform: a native SwiftUI iPhone/iPad app
-with background audio and CarPlay, a NestJS API with an FFmpeg media pipeline, and a web admin dashboard.
-
-| Part | Path | Stack |
+| Service | Default address | What you can do in the app |
 | --- | --- | --- |
-| iOS app | [`ios/`](ios) | Swift, SwiftUI, AVFoundation/AVKit, MediaPlayer, CarPlay, SwiftData — iOS 17+ |
-| Shared Swift core | [`ios/Packages/StreameroCore`](ios/Packages/StreameroCore) | Platform-independent models, API client, queue, lyrics/subtitle parsing (tested on Linux too) |
-| API + media worker | [`backend/`](backend) | TypeScript, NestJS 12, PostgreSQL 16, Redis + BullMQ, S3-compatible storage, FFmpeg/FFprobe, HLS |
-| Web player | [`web/`](web) | React 19, Vite, TypeScript, Web Audio (10-band EQ), hls.js — served at `/` |
-| Admin dashboard | [`admin/`](admin) | React 19, Vite, TypeScript — served at `/admin/` |
-| Infrastructure | [`docker-compose.yml`](docker-compose.yml), [`infra/`](infra) | Docker Compose, nginx, SeaweedFS (S3) |
-| Docs | [`docs/`](docs) | Architecture, API, deployment, iOS build/IPA, CarPlay, security, backups, testing |
+| Jellyfin | `https://streamero.net` | See who is watching (direct play / transcode, bitrate), pause/stop/message a stream, scan libraries, recently added, manage users (create, delete, enable/disable, admin, password), run scheduled tasks, activity log, restart / shut down |
+| Jellyseerr / Overseerr | `https://req.streamero.net` | Pending/approved/available requests, approve, decline, delete, retry, discover & request movies/series, issues (resolve) — several Seerr instances supported |
+| Sonarr | `https://son.streamero.net` | Series library, seasons & episodes, search series/season/episode, monitor, refresh, delete, add new series |
+| Radarr | `https://rad.streamero.net` | Movie library, file & quality, search, monitor, refresh, delete, add new movies |
+| Lidarr | `https://lid.streamero.net` | Artists & albums, album/artist search, monitor, delete, add new artists |
+| Prowlarr | `https://prow.streamero.net` | Indexers with health and stats, enable/disable, test, sync to apps, manual release search and grab |
+| Bazarr | `https://baz.streamero.net` | Missing subtitles per episode/movie with one-tap download per language, history, provider status/reset, tasks |
 
-## Install the iPhone app with Feather (or another sideloading tool)
+Across services: a **dashboard** (status and version of every service, health warnings, active streams, pending
+requests, downloads, disk space, what's airing in the next 7 days, auto-refresh every 30 s), a combined **download
+queue** (remove / blocklist), **calendar**, **wanted** (missing) lists with search, and **history**.
 
-The CI builds an **unsigned** `STREAMERO-<version>-<build>-unsigned.ipa` on every push
-([`.github/workflows/ios.yml`](.github/workflows/ios.yml)). An unsigned IPA cannot be installed on an
-iPhone as-is — Feather (or AltStore, SideStore, Sideloadly, ESign) signs it with **your own** certificate
-and provisioning profile during installation.
+All addresses are editable. API keys are stored only in the iPhone Keychain, and the app can be locked with Face ID.
 
-1. Download **`STREAMERO.ipa`** from [GitHub Releases](https://github.com/mmzlopasa/streamero/releases)
-   (every `v*` tag publishes one; branch builds are also available as Actions artifacts).
-2. In Feather: *Library › Import* the `.ipa`, choose your certificate, sign, and install.
-3. Launch STREAMERO and sign in. The app connects to **`https://app.streamero.net`** automatically
-   (compiled in via `STREAMERO_SERVER_URL`; users never see or enter it) and syncs library changes and new
-   content every 30 seconds while it is open.
+## Install (Feather)
 
-What works when re-signed with a normal (non-entitled) certificate: everything except **CarPlay**,
-which needs an entitlement only Apple can grant to your team. Email and Google sign-in work with any certificate
-(see [`docs/CARPLAY.md`](docs/CARPLAY.md)). Background audio, lock-screen controls, AirPlay, Picture in
-Picture and downloads need no special entitlement. Full details: [`docs/IOS_BUILD.md`](docs/IOS_BUILD.md).
+1. Download **`STREAMERO.ipa`** from [Releases](https://github.com/mmzlopasa/streamero/releases).
+2. In Feather: import the IPA, sign it with your certificate, install.
+3. Open Streamero and enter the API key of each service (see [`docs/POSTAVLJANJE.md`](docs/POSTAVLJANJE.md)).
 
-## Run the server
+The IPA is unsigned; Feather (or AltStore, SideStore, Sideloadly) signs it. No special entitlements are needed.
 
-🇭🇷 **Upute na hrvatskom, korak po korak (uključujući postojeći nginx):** [`docs/INSTALACIJA_SERVERA.md`](docs/INSTALACIJA_SERVERA.md) — ili samo `sudo ./scripts/install-server.sh`.
+## Repository
 
-```bash
-cp .env.example .env            # set POSTGRES_PASSWORD, S3_SECRET_KEY, JWT_ACCESS_SECRET,
-                                # MEDIA_SIGNING_SECRET, BOOTSTRAP_ADMIN_PASSWORD (openssl rand -base64 48)
-docker compose up -d --build
-open http://localhost:8088/admin/   # sign in as BOOTSTRAP_ADMIN_EMAIL, upload music and videos
-```
-
-Only nginx publishes a port; PostgreSQL, Redis and object storage live on an internal network.
-API docs are served at `/docs` (Swagger UI) and `docs/openapi.json`. Production setup (TLS, external
-S3, SMTP, scaling, monitoring): [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
-
-## Develop
+| Path | |
+| --- | --- |
+| [`ios/STREAMERO`](ios/STREAMERO) | SwiftUI app (iOS 17+) |
+| [`ios/Packages/StreameroKit`](ios/Packages/StreameroKit) | API clients and models for all services, tested on Linux with recorded responses |
+| [`scripts/build-unsigned-ipa.sh`](scripts/build-unsigned-ipa.sh) | Builds the unsigned IPA (macOS + Xcode) |
+| [`.github/workflows`](.github/workflows) | CI (Linux tests, simulator tests, IPA) and releases from the `VERSION` file |
 
 ```bash
-# backend (needs PostgreSQL 16, Redis 7, FFmpeg)
-cd backend && cp .env.example .env && npm ci && npm run build && npm start   # API on :8080
-node --env-file=.env dist/worker.js                                          # media worker
-npm test                                                                     # unit + integration tests
-
-# admin
-cd admin && npm ci && npm run dev        # http://localhost:5173/admin/ (proxies /v1 to :8080)
-
-# Swift core (macOS or Linux)
-swift test --package-path ios/Packages/StreameroCore
-
-# iOS app (macOS + Xcode 16+)
+swift test --package-path ios/Packages/StreameroKit          # macOS or Linux
 brew install xcodegen && cd ios && xcodegen generate && open STREAMERO.xcodeproj
 ```
 
-## Project documents
-
-- [PROJECT_PLAN.md](PROJECT_PLAN.md) — phases and checklist
-- [ARCHITECTURE.md](ARCHITECTURE.md) — system design
-- [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) — what is done, partial, or blocked (honest list)
-- [DECISIONS.md](DECISIONS.md) — architecture decision records
-- [SECURITY.md](SECURITY.md) — threat model and controls
-- [docs/](docs) — API, deployment, backups, iOS build & IPA, CarPlay, media formats, testing, release checklist
-
-## Content policy
-
-STREAMERO streams media the operator owns or is licensed to distribute. The importer only accepts files
-from allow-listed sources with a recorded authorisation note. YouTube is supported only through the official
-Data API (discovery) and the official embedded player; STREAMERO never downloads, extracts or proxies
-YouTube streams and does not circumvent DRM.
+Version 1.x (the earlier music streaming app) is preserved in the `v1.3.3` tag and its release.

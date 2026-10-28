@@ -7,10 +7,6 @@ on:
   pull_request:
     paths: ['ios/**', '.github/workflows/ios.yml']
   workflow_dispatch:
-    inputs:
-      server_url:
-        description: 'Override the built-in service URL (default https://app.streamero.net)'
-        required: false
 
 permissions:
   contents: read
@@ -21,12 +17,12 @@ concurrency:
 
 jobs:
   core-linux:
-    name: StreameroCore tests (Linux)
+    name: StreameroKit tests (Linux)
     runs-on: ubuntu-latest
     container: swift:6.1-noble
     steps:
       - uses: actions/checkout@v4
-      - run: swift test --package-path ios/Packages/StreameroCore
+      - run: swift test --package-path ios/Packages/StreameroKit
 
   build-ipa:
     name: Build unsigned IPA (for Feather / sideloading)
@@ -39,8 +35,6 @@ jobs:
           xcodebuild -version
           brew install xcodegen
       - name: Build
-        env:
-          STREAMERO_SERVER_URL: ${{ github.event.inputs.server_url }}
         run: ./scripts/build-unsigned-ipa.sh
       - name: Show build errors
         if: failure()

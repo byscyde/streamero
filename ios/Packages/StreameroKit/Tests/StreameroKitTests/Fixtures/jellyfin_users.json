@@ -1,0 +1,28 @@
+[
+ {
+  "Name": "admin",
+  "ServerId": "s1",
+  "Id": "u0",
+  "HasPassword": true,
+  "LastLoginDate": "2026-10-27T20:00:00.0000000Z",
+  "LastActivityDate": "2026-10-28T09:50:00.0000000Z",
+  "Policy": {
+   "IsAdministrator": true,
+   "IsHidden": true,
+   "IsDisabled": false,
+   "EnableRemoteAccess": true,
+   "AuthenticationProviderId": "x",
+   "PasswordResetProviderId": "y"
+  }
+ },
+ {
+  "Name": "guest",
+  "Id": "u2",
+  "HasPassword": false,
+  "LastActivityDate": "0001-01-01T00:00:00.0000000Z",
+  "Policy": {
+   "IsAdministrator": false,
+   "IsDisabled": true
+  }
+ }
+]

@@ -1,0 +1,31 @@
+[
+ {
+  "artistName": "Daft Punk",
+  "foreignArtistId": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+  "status": "ended",
+  "overview": "French electronic duo",
+  "images": [
+   {
+    "coverType": "poster",
+    "url": "/MediaCover/5/poster.jpg",
+    "remoteUrl": "https://assets.fanart.tv/fanart/music/x.jpg"
+   }
+  ],
+  "path": "/music/Daft Punk",
+  "qualityProfileId": 1,
+  "metadataProfileId": 1,
+  "monitored": true,
+  "genres": [
+   "Electronic"
+  ],
+  "statistics": {
+   "albumCount": 4,
+   "trackFileCount": 50,
+   "trackCount": 60,
+   "totalTrackCount": 60,
+   "sizeOnDisk": 2000000000,
+   "percentOfTracks": 83.3
+  },
+  "id": 5
+ }
+]

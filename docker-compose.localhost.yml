@@ -1,7 +1,0 @@
-# Overlay for servers that already run a web server (nginx/Apache/Traefik) on ports 80/443:
-# STREAMERO's internal nginx is reachable only from this machine on 127.0.0.1:HTTP_PORT and your
-# existing web server reverse-proxies the public domain to it (see infra/host-nginx-streamero.conf).
-services:
-  nginx:
-    ports: !override
-      - "127.0.0.1:${HTTP_PORT:-8088}:80"

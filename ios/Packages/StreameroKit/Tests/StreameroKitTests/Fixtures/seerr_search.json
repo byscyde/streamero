@@ -1,0 +1,48 @@
+{
+ "page": 1,
+ "totalPages": 1,
+ "totalResults": 3,
+ "results": [
+  {
+   "id": 693134,
+   "mediaType": "movie",
+   "adult": false,
+   "genreIds": [
+    878
+   ],
+   "originalLanguage": "en",
+   "originalTitle": "Dune: Part Two",
+   "overview": "Follow the mythic journey...",
+   "popularity": 500.1,
+   "releaseDate": "2024-02-27",
+   "title": "Dune: Part Two",
+   "video": false,
+   "voteAverage": 8.2,
+   "voteCount": 5000,
+   "backdropPath": "/xOMo8BRK7PfcJv9JCnx7s5hj0PX.jpg",
+   "posterPath": "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
+   "mediaInfo": {
+    "id": 90,
+    "tmdbId": 693134,
+    "status": 5
+   }
+  },
+  {
+   "id": 95396,
+   "mediaType": "tv",
+   "firstAirDate": "2022-02-17",
+   "name": "Severance",
+   "originalName": "Severance",
+   "overview": "...",
+   "posterPath": "/lFf6LLrQjYldcZItzOkGmMMigP7.jpg",
+   "voteAverage": 8.4
+  },
+  {
+   "id": 1190,
+   "mediaType": "person",
+   "name": "Denis Villeneuve",
+   "profilePath": "/zdDx9Xs93UIrJFWYApYR28J8M6b.jpg",
+   "knownFor": []
+  }
+ ]
+}

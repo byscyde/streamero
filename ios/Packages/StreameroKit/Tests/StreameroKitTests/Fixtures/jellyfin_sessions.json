@@ -1,0 +1,57 @@
+[
+ {
+  "PlayState": {
+   "PositionTicks": 18000000000,
+   "CanSeek": true,
+   "IsPaused": false,
+   "IsMuted": false,
+   "VolumeLevel": 100,
+   "PlayMethod": "Transcode",
+   "RepeatMode": "RepeatNone"
+  },
+  "Id": "a1b2c3",
+  "UserId": "u1",
+  "UserName": "ana",
+  "Client": "Jellyfin Web",
+  "LastActivityDate": "2026-10-28T09:58:31.1234567Z",
+  "DeviceName": "Firefox",
+  "DeviceId": "d1",
+  "ApplicationVersion": "10.10.3",
+  "IsActive": true,
+  "SupportsRemoteControl": true,
+  "RemoteEndPoint": "10.0.0.5",
+  "NowPlayingItem": {
+   "Name": "Who Is Alive?",
+   "Id": "i1",
+   "SeriesName": "Severance",
+   "Type": "Episode",
+   "IndexNumber": 3,
+   "ParentIndexNumber": 2,
+   "RunTimeTicks": 36000000000,
+   "ProductionYear": 2025
+  },
+  "TranscodingInfo": {
+   "AudioCodec": "aac",
+   "VideoCodec": "h264",
+   "Container": "ts",
+   "IsVideoDirect": false,
+   "IsAudioDirect": false,
+   "Bitrate": 8000000,
+   "CompletionPercentage": 12.5,
+   "TranscodeReasons": [
+    "VideoCodecNotSupported"
+   ]
+  }
+ },
+ {
+  "Id": "idle1",
+  "UserName": "admin",
+  "Client": "Streamero",
+  "DeviceName": "iPhone",
+  "LastActivityDate": "2026-10-28T09:50:00.0000000Z",
+  "PlayState": {
+   "CanSeek": false,
+   "IsPaused": false
+  }
+ }
+]

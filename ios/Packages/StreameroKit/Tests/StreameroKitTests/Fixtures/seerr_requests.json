@@ -1,0 +1,79 @@
+{
+ "pageInfo": {
+  "pages": 1,
+  "pageSize": 30,
+  "results": 2,
+  "page": 1
+ },
+ "results": [
+  {
+   "id": 41,
+   "status": 1,
+   "createdAt": "2026-10-27T18:22:10.000Z",
+   "updatedAt": "2026-10-27T18:22:10.000Z",
+   "type": "movie",
+   "is4k": false,
+   "serverId": 0,
+   "profileId": 6,
+   "rootFolder": "/movies",
+   "media": {
+    "id": 90,
+    "mediaType": "movie",
+    "tmdbId": 693134,
+    "tvdbId": null,
+    "imdbId": null,
+    "status": 2,
+    "status4k": 1,
+    "createdAt": "2026-10-27T18:22:10.000Z"
+   },
+   "seasons": [],
+   "modifiedBy": null,
+   "requestedBy": {
+    "permissions": 32,
+    "id": 3,
+    "email": "ana@example.com",
+    "plexUsername": null,
+    "jellyfinUsername": "ana",
+    "username": null,
+    "userType": 3,
+    "avatar": "/avatarproxy/abc",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "requestCount": 7,
+    "displayName": "Ana"
+   },
+   "seasonCount": 0
+  },
+  {
+   "id": 42,
+   "status": 2,
+   "createdAt": "2026-10-26T10:00:00.000Z",
+   "type": "tv",
+   "is4k": false,
+   "media": {
+    "id": 91,
+    "mediaType": "tv",
+    "tmdbId": 95396,
+    "tvdbId": 371980,
+    "status": 3
+   },
+   "seasons": [
+    {
+     "id": 1,
+     "seasonNumber": 1,
+     "status": 2
+    },
+    {
+     "id": 2,
+     "seasonNumber": 2,
+     "status": 2
+    }
+   ],
+   "requestedBy": {
+    "id": 1,
+    "email": "admin@example.com",
+    "displayName": "",
+    "jellyfinUsername": "admin"
+   }
+  }
+ ]
+}

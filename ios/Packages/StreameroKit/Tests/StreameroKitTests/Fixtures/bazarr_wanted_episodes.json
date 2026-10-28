@@ -1,0 +1,31 @@
+{
+ "data": [
+  {
+   "seriesTitle": "Severance",
+   "episode_number": "2x3",
+   "episodeTitle": "Who Is Alive?",
+   "missing_subtitles": [
+    {
+     "name": "Croatian",
+     "code2": "hr",
+     "code3": "hrv",
+     "forced": false,
+     "hi": false
+    },
+    {
+     "name": "English",
+     "code2": "en",
+     "code3": "eng",
+     "forced": "False",
+     "hi": "True"
+    }
+   ],
+   "sonarrSeriesId": 12,
+   "sonarrEpisodeId": 501,
+   "sceneName": null,
+   "tags": [],
+   "seriesType": "standard"
+  }
+ ],
+ "total": 1
+}

@@ -1,0 +1,27 @@
+{
+ "id": 95396,
+ "name": "Severance",
+ "firstAirDate": "2022-02-17",
+ "posterPath": "/p.jpg",
+ "numberOfSeasons": 2,
+ "seasons": [
+  {
+   "id": 1,
+   "seasonNumber": 0,
+   "name": "Specials",
+   "episodeCount": 3
+  },
+  {
+   "id": 2,
+   "seasonNumber": 1,
+   "name": "Season 1",
+   "episodeCount": 9
+  },
+  {
+   "id": 3,
+   "seasonNumber": 2,
+   "name": "Season 2",
+   "episodeCount": 10
+  }
+ ]
+}

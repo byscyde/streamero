@@ -55,7 +55,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.v.outputs.tag }}
-          name: STREAMERO ${{ steps.v.outputs.tag }}
+          name: Streamero ${{ steps.v.outputs.tag }}
           target_commitish: ${{ github.sha }}
           body_path: ${{ runner.temp }}/notes.md
           files: |

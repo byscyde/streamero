@@ -1,4 +1,4 @@
-# XcodeGen spec: `xcodegen generate` produces STREAMERO.xcodeproj (not committed; see docs/IOS_BUILD.md).
+# XcodeGen spec: `xcodegen generate` produces STREAMERO.xcodeproj (not committed).
 name: STREAMERO
 options:
   bundleIdPrefix: com.scyde
@@ -12,16 +12,16 @@ configs:
   Release: release
 settings:
   base:
-    MARKETING_VERSION: "1.3.3"
-    CURRENT_PROJECT_VERSION: "8"
+    MARKETING_VERSION: "2.0.0"
+    CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: YES
 packages:
-  StreameroCore:
-    path: Packages/StreameroCore
+  StreameroKit:
+    path: Packages/StreameroKit
 targets:
   STREAMERO:
     type: application
@@ -29,20 +29,12 @@ targets:
     sources:
       - path: STREAMERO
     dependencies:
-      - package: StreameroCore
-      - sdk: CarPlay.framework
-      - sdk: AVKit.framework
-      - sdk: MediaPlayer.framework
-      - sdk: AuthenticationServices.framework
-      - sdk: MediaToolbox.framework
-    entitlements:
-      path: STREAMERO/STREAMERO.entitlements
-      properties:
-        com.apple.developer.carplay-audio: true
+      - package: StreameroKit
+      - sdk: LocalAuthentication.framework
     info:
       path: STREAMERO/Info.plist
       properties:
-        CFBundleDisplayName: STREAMERO
+        CFBundleDisplayName: Streamero
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
@@ -51,41 +43,31 @@ targets:
           UIColorName: LaunchBackground
           UIImageRespectsSafeAreaInsets: true
         UIApplicationSceneManifest:
-          UIApplicationSupportsMultipleScenes: true
-          UISceneConfigurations:
-            CPTemplateApplicationSceneSessionRoleApplication:
-              - UISceneConfigurationName: CarPlay
-                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarPlaySceneDelegate
-        UIBackgroundModes: [audio, fetch, processing]
-        BGTaskSchedulerPermittedIdentifiers: [com.scyde.streamero.sync]
+          UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
-        CFBundleURLTypes:
-          - CFBundleURLName: com.scyde.streamero.links
-            CFBundleURLSchemes: [streamero]
-        # The app only talks to the STREAMERO service over HTTPS (default App Transport Security).
-        StreameroServerURL: $(STREAMERO_SERVER_URL)
+        NSFaceIDUsageDescription: Streamero uses Face ID to keep your server administration locked.
+        # Services are normally reached over HTTPS; local http:// addresses (e.g. 192.168.x.x) are allowed for home networks.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: Streamero connects to your media servers on the local network when you enter a local address.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(STREAMERO_BUNDLE_ID)
         STREAMERO_BUNDLE_ID: com.scyde.streamero
-        STREAMERO_SERVER_URL: "https://app.streamero.net"
         PRODUCT_NAME: STREAMERO
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_PREVIEWS: YES
-      configs:
-        Debug:
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
   STREAMEROTests:
     type: bundle.unit-test
     platform: iOS
     sources: [STREAMEROTests]
     dependencies:
       - target: STREAMERO
-      - package: StreameroCore
+      - package: StreameroKit
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
@@ -103,19 +85,9 @@ targets:
         TEST_TARGET_NAME: STREAMERO
 schemes:
   STREAMERO:
-    shared: true
     build:
       targets:
         STREAMERO: all
-        STREAMEROTests: [test]
-        STREAMEROUITests: [test]
-    run:
-      config: Debug
     test:
-      config: Debug
-      gatherCoverageData: true
-      targets:
-        - STREAMEROTests
-        - STREAMEROUITests
-    archive:
-      config: Release
+      targets: [STREAMEROTests, STREAMEROUITests]
+      gatherCoverageData: false

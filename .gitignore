@@ -9,6 +9,7 @@ ios/*.xcodeproj/xcuserdata/
 ios/**/*.xcuserstate
 ios/DerivedData/
 *.ipa
-ios/Packages/StreameroCore/.build/
-ios/Packages/StreameroCore/.swiftpm/
+ios/Packages/*/.build/
+ios/Packages/*/.swiftpm/
+ios/STREAMERO/Info.plist
 dump.rdb

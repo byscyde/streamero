@@ -1,25 +1,15 @@
-## 📱 Instalacija na iPhone (Feather)
+## 📱 Instalacija (Feather)
 
 1. Preuzmi **`STREAMERO.ipa`** ispod (Assets).
 2. U Featheru uvezi IPA, potpiši ga svojim certifikatom i instaliraj.
-3. Otvori STREAMERO i prijavi se — aplikacija se sama spaja na `https://app.streamero.net` (ništa se ne upisuje).
-   Biblioteka i novi sadržaj sinkroniziraju se automatski svakih 30 s dok je aplikacija otvorena.
+3. Otvori Streamero i upiši API ključeve servisa — adrese za streamero.net su već upisane.
+   Upute: [`docs/POSTAVLJANJE.md`](https://github.com/mmzlopasa/streamero/blob/{{TAG}}/docs/POSTAVLJANJE.md)
+
+Streamero upravlja Jellyfinom, Jellyseerr/Overseerr zahtjevima, Sonarrom, Radarrom, Lidarrom, Prowlarrom i
+Bazarrom iz jedne aplikacije. Spaja se izravno na tvoje servise; ključevi ostaju u Keychainu na iPhoneu.
 
 Ovo je **nepotpisan** IPA — Feather (ili AltStore/SideStore/Sideloadly) ga potpisuje tvojim certifikatom.
-CarPlay radi samo s certifikatom koji ima tu Appleovu dozvolu; sve ostalo (glazba u pozadini, lock screen,
-AirPlay, PiP, offline downloadi, prijava emailom i Google računom) radi s bilo kojim certifikatom.
-
-## 🖥️ Server
-
-Upute korak po korak: [`docs/INSTALACIJA_SERVERA.md`](https://github.com/mmzlopasa/streamero/blob/{{TAG}}/docs/INSTALACIJA_SERVERA.md)
-
-```bash
-git clone --branch {{TAG}} https://github.com/mmzlopasa/streamero.git && cd streamero
-sudo ./scripts/install-server.sh
-```
-
-Minimalni zahtjevi servera: Linux x86_64 ili ARM64, 2 CPU jezgre, 4 GB RAM, Docker; prostor ovisno o glazbi/videu.
+Posebne Appleove dozvole nisu potrebne.
 
 ---
-*English:* download `STREAMERO.ipa`, sign and install it with Feather/AltStore, then sign in — the app connects to https://app.streamero.net automatically and syncs every 30 s while open.
-Server setup: `docs/INSTALACIJA_SERVERA.md` / `docs/DEPLOYMENT.md`.
+*English:* download `STREAMERO.ipa`, sign and install it with Feather, then enter the API key of each service.

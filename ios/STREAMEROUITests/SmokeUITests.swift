@@ -3,26 +3,20 @@ import XCTest
 final class SmokeUITests: XCTestCase {
     override func setUp() { continueAfterFailure = false }
 
-    /// A fresh install goes straight to the welcome screen: no server address is ever asked for.
+    /// A fresh install opens the set-up sheet with every service prefilled; adding a key opens the editor.
     @MainActor
-    func testFreshLaunchShowsWelcomeWithoutServerEntry() {
+    func testFirstLaunchShowsServiceSetup() {
         let app = XCUIApplication()
         app.launchArguments = ["--uitesting-reset"]
         app.launch()
-        let signUp = app.buttons["signUpButton"]
-        XCTAssertTrue(signUp.waitForExistence(timeout: 10), "Welcome screen is shown")
-        XCTAssertFalse(app.textFields["serverAddressField"].exists, "Users never type a server address")
-        XCTAssertTrue(app.textFields["welcomeEmailField"].exists, "Welcome screen offers sign-up with email")
-        app.buttons["logInButton"].tap()
-        let email = app.textFields["emailField"]
-        XCTAssertTrue(email.waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["authSubmit"].isEnabled, "Log in stays disabled until email and password are entered")
-        email.tap()
-        email.typeText("listener@example.com")
-        let password = app.secureTextFields["passwordField"]
-        password.tap()
-        password.typeText("password123")
-        XCTAssertTrue(app.buttons["authSubmit"].isEnabled)
-        XCTAssertTrue(app.buttons["forgotPasswordButton"].exists, "Forgot password? is offered on the login screen")
+        XCTAssertTrue(app.navigationBars["Set up"].waitForExistence(timeout: 10))
+        for name in ["Jellyfin", "Sonarr", "Radarr", "Prowlarr", "Bazarr"] {
+            XCTAssertTrue(app.staticTexts[name].exists, "\(name) is listed")
+        }
+        app.staticTexts["Sonarr"].tap()
+        XCTAssertTrue(app.secureTextFields["apiKeyField"].waitForExistence(timeout: 5))
+        let url = app.textFields["serviceURLField"]
+        XCTAssertTrue(url.exists)
+        XCTAssertEqual(url.value as? String, "https://son.streamero.net")
     }
 }

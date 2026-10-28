@@ -1,0 +1,28 @@
+[
+ {
+  "Name": "Scan Media Library",
+  "State": "Running",
+  "CurrentProgressPercentage": 42.5,
+  "Id": "t1",
+  "LastExecutionResult": {
+   "StartTimeUtc": "2026-10-28T03:00:00.1234567Z",
+   "EndTimeUtc": "2026-10-28T03:05:00.7654321Z",
+   "Status": "Completed",
+   "Name": "Scan Media Library",
+   "Key": "RefreshLibrary",
+   "Id": "t1"
+  },
+  "Triggers": [],
+  "Description": "Scans your media library for new files and refreshes metadata.",
+  "Category": "Library",
+  "IsHidden": false,
+  "Key": "RefreshLibrary"
+ },
+ {
+  "Name": "Clean Cache Directory",
+  "State": "Idle",
+  "Id": "t2",
+  "Category": "Maintenance",
+  "IsHidden": false
+ }
+]

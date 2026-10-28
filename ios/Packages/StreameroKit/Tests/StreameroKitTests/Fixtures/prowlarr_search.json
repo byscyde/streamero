@@ -1,0 +1,25 @@
+[
+ {
+  "guid": "magnet:?xt=urn:btih:abc",
+  "age": 10,
+  "ageHours": 240.5,
+  "size": 1610612736,
+  "grabs": 42,
+  "indexerId": 1,
+  "indexer": "Example Indexer",
+  "title": "Big Buck Bunny 2008 1080p",
+  "sortTitle": "big buck bunny 2008 1080p",
+  "publishDate": "2026-10-18T09:30:00Z",
+  "downloadUrl": "https://prow.example/1/download",
+  "infoUrl": "https://example-indexer.test/t/1",
+  "seeders": 120,
+  "leechers": 5,
+  "protocol": "torrent",
+  "categories": [
+   {
+    "id": 2000,
+    "name": "Movies"
+   }
+  ]
+ }
+]

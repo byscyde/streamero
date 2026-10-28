@@ -1,0 +1,39 @@
+[
+ {
+  "indexerUrls": [
+   "https://example-indexer.test/"
+  ],
+  "definitionName": "exampleindexer",
+  "enable": true,
+  "redirect": false,
+  "supportsRss": true,
+  "supportsSearch": true,
+  "protocol": "torrent",
+  "privacy": "public",
+  "priority": 25,
+  "downloadClientId": 0,
+  "added": "2024-01-01T00:00:00Z",
+  "name": "Example Indexer",
+  "fields": [
+   {
+    "order": 0,
+    "name": "baseUrl",
+    "value": "https://example-indexer.test/"
+   }
+  ],
+  "implementationName": "Cardigann",
+  "implementation": "Cardigann",
+  "configContract": "CardigannSettings",
+  "tags": [],
+  "id": 1
+ },
+ {
+  "enable": false,
+  "protocol": "usenet",
+  "privacy": "private",
+  "priority": 10,
+  "name": "Usenet One",
+  "implementationName": "Newznab",
+  "id": 2
+ }
+]
